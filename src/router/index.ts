@@ -1,25 +1,25 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import Home from '@/views/Home.vue'
-import History from '@/views/History.vue'
-import Settings from '@/views/Settings.vue'
+import { createRouter, createWebHashHistory } from 'vue-router'
+import HomeView from '@/views/HomeView.vue'
+import HistoryView from '@/views/HistoryView.vue'
+import SettingsView from '@/views/SettingsView.vue'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes: [
     {
       path: '/',
       name: 'home',
-      component: Home,
+      component: HomeView,
     },
     {
       path: '/history',
       name: 'history',
-      component: History,
+      component: HistoryView,
     },
     {
       path: '/settings',
       name: 'settings',
-      component: Settings,
+      component: SettingsView,
     },
   ],
 })

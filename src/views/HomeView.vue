@@ -15,7 +15,7 @@
     </main>
 
     <footer class="app-footer">
-      <p>&copy; 2025 语匠 - 提升英语写作能力</p>
+      <p>&copy; 2025 cup11 - 语匠 - 提升英语写作能力</p>
     </footer>
   </div>
 </template>
