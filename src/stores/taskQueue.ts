@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import { useHistoryStore } from './history'
 import type { Task } from '../types'
+import { evaluateSentence } from '@/services/apiService'
+import { useApiConfigStore } from './apiConfig'
 
 export const useTaskQueueStore = defineStore('taskQueue', () => {
   const tasks = useLocalStorage<Task[]>('phrase-forge-tasks', [])
@@ -44,11 +46,19 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     return task.id
   }
 
-  function startProcessing(taskId: string) {
+  async function startProcessing(taskId: string) {
     const task = tasks.value.find((t) => t.id === taskId)
     if (task) {
       task.status = 'processing'
       task.startedAt = Date.now()
+      const apiConfigStore = useApiConfigStore()
+      const response = await evaluateSentence(
+        task.keyword,
+        task.sentence,
+        task.scenario,
+        apiConfigStore.apiConfig,
+      )
+      completeTask(taskId, response)
       processingTaskId.value = taskId
     }
   }
