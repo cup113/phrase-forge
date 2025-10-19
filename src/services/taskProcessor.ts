@@ -1,60 +1,48 @@
-import { apiService } from './apiService'
-import type { Task } from '@/stores/taskQueue'
+import { ref } from 'vue'
+import { evaluateSentence } from './apiService'
+import type { Task, ApiConfig } from '@/types'
 
-class TaskProcessor {
-  private isProcessing = false
-
-  async startProcessing(
-    getPendingTasks: () => Task[],
-    onStartProcessing: (taskId: string) => void,
-    onComplete: (taskId: string, result: any) => void,
-    onError: (taskId: string, error: string) => void,
-  ) {
-    if (this.isProcessing) {
-      return
-    }
-
-    this.isProcessing = true
-
-    while (this.isProcessing) {
-      const pendingTasks = getPendingTasks()
-
-      if (pendingTasks.length === 0) {
-        // 没有待处理任务，等待一段时间再检查
-        await new Promise((resolve) => setTimeout(resolve, 1000))
-        continue
-      }
-
-      const task = pendingTasks[0]
-
-      if (!task) {
-        await new Promise((resolve) => setTimeout(resolve, 100))
-        continue
-      }
-
-      try {
-        onStartProcessing(task.id)
-
-        const result = await apiService.processTask(task)
-
-        onComplete(task.id, result)
-      } catch (error) {
-        console.error(`处理任务失败: ${task.id}`, error)
-        onError(task.id, error instanceof Error ? error.message : '未知错误')
-      }
-
-      // 处理完一个任务后稍作延迟，避免过于频繁的API调用
-      await new Promise((resolve) => setTimeout(resolve, 500))
-    }
-  }
-
-  stopProcessing() {
-    this.isProcessing = false
-  }
-
-  getProcessingStatus(): boolean {
-    return this.isProcessing
-  }
+interface TaskQueueStore {
+  pendingTasks: Task[]
+  startProcessing: (taskId: string) => void
+  completeTask: (taskId: string, result: Task['result']) => void
+  failTask: (taskId: string, error: string) => void
 }
 
-export const taskProcessor = new TaskProcessor()
+interface ApiConfigStore {
+  apiConfig: ApiConfig
+}
+
+export function useTaskProcessor(taskQueueStore: TaskQueueStore, apiConfigStore: ApiConfigStore) {
+  const isProcessing = ref(false)
+
+  async function processNext() {
+    if (isProcessing.value) return
+
+    const pending = taskQueueStore.pendingTasks
+    if (pending.length === 0) return
+
+    const task = pending[0]
+    if (!task) return
+
+    isProcessing.value = true
+
+    try {
+      taskQueueStore.startProcessing(task.id)
+      const result = await evaluateSentence(
+        task.keyword,
+        task.sentence,
+        task.scenario,
+        apiConfigStore.apiConfig,
+      )
+      taskQueueStore.completeTask(task.id, result)
+    } catch (error) {
+      taskQueueStore.failTask(task.id, error instanceof Error ? error.message : '未知错误')
+    } finally {
+      isProcessing.value = false
+      setTimeout(processNext, 500)
+    }
+  }
+
+  return { processNext, isProcessing }
+}

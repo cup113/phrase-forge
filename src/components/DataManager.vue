@@ -80,12 +80,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useHistoryStore } from '@/stores/history'
 import { useTaskQueueStore } from '@/stores/taskQueue'
+import { useApiConfigStore } from '@/stores/apiConfig'
 
 const historyStore = useHistoryStore()
 const taskQueueStore = useTaskQueueStore()
+const apiConfigStore = useApiConfigStore()
 
 const fileInput = ref<HTMLInputElement>()
 const selectedFile = ref<File | null>(null)
@@ -97,11 +99,11 @@ const historyCount = computed(() => historyStore.history.length)
 const taskCount = computed(() => taskQueueStore.tasks.length)
 
 const storageSize = computed(() => {
-  const historyData = localStorage.getItem('phrase-forge-history')
-  const taskData = localStorage.getItem('phrase-forge-tasks')
-  const configData = localStorage.getItem('phrase-forge-api-config')
+  const historyData = JSON.stringify(historyStore.history)
+  const taskData = JSON.stringify(taskQueueStore.tasks)
+  const configData = JSON.stringify(apiConfigStore.apiConfig)
 
-  const totalSize = (historyData?.length || 0) + (taskData?.length || 0) + (configData?.length || 0)
+  const totalSize = historyData.length + taskData.length + configData.length
 
   if (totalSize < 1024) {
     return totalSize + ' B'
@@ -112,10 +114,7 @@ const storageSize = computed(() => {
   }
 })
 
-onMounted(() => {
-  historyStore.loadHistoryFromStorage()
-  taskQueueStore.loadTasksFromStorage()
-})
+// VueUse 自动处理存储，无需手动加载
 
 // 导出所有数据
 function exportAllData() {

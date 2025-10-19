@@ -70,7 +70,7 @@
       <h4>学习趋势</h4>
       <div class="trend-chart">
         <div v-for="day in weeklyTrend" :key="day.date" class="trend-day">
-          <div class="trend-bar" :style="{ height: day.height + '%' }"></div>
+          <div class="trend-bar" :style="{ height: day.height + 'px' }"></div>
           <div class="trend-label">{{ day.label }}</div>
           <div class="trend-count">{{ day.count }}</div>
         </div>
@@ -82,6 +82,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useHistoryStore } from '@/stores/history'
+import type { HistoryRecord } from '@/types'
 
 const historyStore = useHistoryStore()
 
@@ -91,7 +92,7 @@ const history = computed(() => historyStore.history)
 const totalRecords = computed(() => history.value.length)
 
 const uniqueKeywords = computed(() => {
-  const keywords = new Set(history.value.map((record) => record.keyword))
+  const keywords = new Set(history.value.map((record: HistoryRecord) => record.keyword))
   return keywords.size
 })
 
@@ -107,8 +108,8 @@ const averageLevel = computed(() => {
     C: 1,
   }
 
-  const totalScore = history.value.reduce((sum, record) => {
-    return sum + (levelScores[record.level] || 0)
+  const totalScore = history.value.reduce((sum: number, record: HistoryRecord) => {
+    return sum + (levelScores[record.result?.level || ''] || 0)
   }, 0)
 
   const averageScore = totalScore / history.value.length
@@ -124,7 +125,7 @@ const averageLevel = computed(() => {
 
 const recentActivity = computed(() => {
   const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-  return history.value.filter((record) => record.createdAt > oneWeekAgo).length
+  return history.value.filter((record: HistoryRecord) => record.createdAt > oneWeekAgo).length
 })
 
 // 等级分布
@@ -133,7 +134,9 @@ const levelDistribution = computed(() => {
   const distribution: { level: string; count: number; percentage: number }[] = []
 
   levels.forEach((level) => {
-    const count = history.value.filter((record) => record.level === level).length
+    const count = history.value.filter(
+      (record: HistoryRecord) => record.result?.level === level,
+    ).length
     const percentage = totalRecords.value > 0 ? (count / totalRecords.value) * 100 : 0
     distribution.push({ level, count, percentage })
   })
@@ -145,7 +148,7 @@ const levelDistribution = computed(() => {
 const topKeywords = computed(() => {
   const keywordCounts: Record<string, number> = {}
 
-  history.value.forEach((record) => {
+  history.value.forEach((record: HistoryRecord) => {
     const keyword = record.keyword
     keywordCounts[keyword] = (keywordCounts[keyword] || 0) + 1
   })
@@ -169,11 +172,11 @@ const weeklyTrend = computed(() => {
     const dayEnd = new Date(date).setHours(23, 59, 59, 999)
 
     const count = history.value.filter(
-      (record) => record.createdAt >= dayStart && record.createdAt <= dayEnd,
+      (record: HistoryRecord) => record.createdAt >= dayStart && record.createdAt <= dayEnd,
     ).length
 
     const maxCount = Math.max(...(weeklyTrend.value?.map((d) => d.count) || [1]), 1)
-    const height = (count / maxCount) * 80
+    const height = (count / maxCount) * 20 + count * 5
 
     days.push({
       date: date.toISOString().split('T')[0],

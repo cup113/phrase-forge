@@ -1,21 +1,10 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import type { Task } from './taskQueue'
-
-export interface HistoryRecord {
-  id: string
-  keyword: string
-  sentence: string
-  scenario: string
-  level: string
-  reason: string
-  suggestions?: string[]
-  explanation?: string
-  createdAt: number
-}
+import { computed } from 'vue'
+import { useLocalStorage } from '@vueuse/core'
+import type { Task, HistoryRecord } from '../types'
 
 export const useHistoryStore = defineStore('history', () => {
-  const history = ref<HistoryRecord[]>([])
+  const history = useLocalStorage<HistoryRecord[]>('phrase-forge-history', [])
 
   const recentHistory = computed(() => {
     return history.value.slice(0, 50)
@@ -30,8 +19,8 @@ export const useHistoryStore = defineStore('history', () => {
         stats[keyword] = { count: 0, levels: {} }
       }
       stats[keyword].count++
-      if (record.level) {
-        const level = record.level
+      if (record.result?.level) {
+        const level = record.result.level
         stats[keyword].levels[level] = (stats[keyword].levels[level] || 0) + 1
       }
     })
@@ -42,14 +31,8 @@ export const useHistoryStore = defineStore('history', () => {
   function addRecord(task: Task) {
     if (task.status === 'completed' && task.result) {
       const record: HistoryRecord = {
-        id: task.id,
-        keyword: task.keyword,
-        sentence: task.sentence,
-        scenario: task.scenario,
-        level: task.result.level,
-        reason: task.result.reason,
-        suggestions: task.result.suggestions,
-        explanation: task.result.explanation,
+        ...task,
+        status: 'completed' as const,
         createdAt: task.completedAt || Date.now(),
       }
 
@@ -58,8 +41,6 @@ export const useHistoryStore = defineStore('history', () => {
       if (history.value.length > 100) {
         history.value = history.value.slice(0, 100)
       }
-
-      saveHistoryToStorage()
     }
   }
 
@@ -67,28 +48,11 @@ export const useHistoryStore = defineStore('history', () => {
     const index = history.value.findIndex((record) => record.id === recordId)
     if (index !== -1) {
       history.value.splice(index, 1)
-      saveHistoryToStorage()
     }
   }
 
   function clearHistory() {
     history.value = []
-    saveHistoryToStorage()
-  }
-
-  function loadHistoryFromStorage() {
-    const saved = localStorage.getItem('phrase-forge-history')
-    if (saved) {
-      try {
-        history.value = JSON.parse(saved)
-      } catch (error) {
-        console.error('Failed to load history:', error)
-      }
-    }
-  }
-
-  function saveHistoryToStorage() {
-    localStorage.setItem('phrase-forge-history', JSON.stringify(history.value))
   }
 
   function exportHistory(): string {
@@ -100,7 +64,6 @@ export const useHistoryStore = defineStore('history', () => {
       const imported = JSON.parse(data)
       if (Array.isArray(imported)) {
         history.value = imported
-        saveHistoryToStorage()
         return true
       }
       return false
@@ -117,7 +80,6 @@ export const useHistoryStore = defineStore('history', () => {
     addRecord,
     removeRecord,
     clearHistory,
-    loadHistoryFromStorage,
     exportHistory,
     importHistory,
   }

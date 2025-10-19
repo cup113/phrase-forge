@@ -41,7 +41,7 @@
         />
         <small class="help-text">
           <span class="help-icon">📝</span>
-          默认端点：https://dashscope.aliyuncs.com/api/v1/apps/c64617ac89584dafaaa72de357e3c184/completion
+          通义千问工作流端点，建议使用默认
         </small>
       </div>
 
@@ -81,7 +81,6 @@ const endpoint = ref('')
 const isConfigured = apiConfigStore.isConfigured
 
 onMounted(() => {
-  apiConfigStore.loadApiConfig()
   apiKey.value = apiConfigStore.apiConfig.apiKey
   endpoint.value = apiConfigStore.apiConfig.endpoint
 })

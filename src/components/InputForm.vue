@@ -41,12 +41,11 @@
         <label for="scenario">
           <span class="label-icon">🎯</span>
           应用场景
-          <span class="optional">（可选）</span>
         </label>
         <textarea
           id="scenario"
           v-model="scenario"
-          placeholder="请描述这个句子使用的场景（可选）"
+          placeholder="请描述这个句子使用的场景"
           rows="2"
         ></textarea>
       </div>
@@ -95,11 +94,7 @@ function submitSentence() {
     return
   }
 
-  const taskId = taskQueueStore.addTask(
-    keyword.value.trim(),
-    sentence.value.trim(),
-    scenario.value.trim(),
-  )
+  taskQueueStore.addTask(keyword.value.trim(), sentence.value.trim(), scenario.value.trim())
 
   showSuccess.value = true
   clearForm()
@@ -180,12 +175,6 @@ label {
 
 .label-icon {
   font-size: 16px;
-}
-
-.optional {
-  font-size: 12px;
-  color: #6c757d;
-  font-weight: 400;
 }
 
 input,

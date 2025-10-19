@@ -1,25 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-
-export interface Task {
-  id: string
-  keyword: string
-  sentence: string
-  scenario: string
-  status: 'pending' | 'processing' | 'completed' | 'failed'
-  result?: {
-    level: string
-    reason: string
-    suggestions?: string[]
-    explanation?: string
-  }
-  error?: string
-  createdAt: number
-  completedAt?: number
-}
+import { useLocalStorage } from '@vueuse/core'
+import { useHistoryStore } from './history'
+import type { Task } from '../types'
 
 export const useTaskQueueStore = defineStore('taskQueue', () => {
-  const tasks = ref<Task[]>([])
+  const tasks = useLocalStorage<Task[]>('phrase-forge-tasks', [])
   const processingTaskId = ref<string | null>(null)
 
   const pendingTasks = computed(() => {
@@ -49,9 +35,12 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
       status: 'pending',
       createdAt: Date.now(),
     }
-
     tasks.value.push(task)
-    saveTasksToStorage()
+
+    if (processingTaskId.value === null) {
+      startProcessing(task.id)
+    }
+
     return task.id
   }
 
@@ -59,19 +48,20 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     const task = tasks.value.find((t) => t.id === taskId)
     if (task) {
       task.status = 'processing'
+      task.startedAt = Date.now()
       processingTaskId.value = taskId
-      saveTasksToStorage()
     }
   }
 
   function completeTask(taskId: string, result: Task['result']) {
     const task = tasks.value.find((t) => t.id === taskId)
     if (task) {
+      const historyStore = useHistoryStore()
       task.status = 'completed'
       task.result = result
       task.completedAt = Date.now()
       processingTaskId.value = null
-      saveTasksToStorage()
+      historyStore.addRecord(task)
     }
   }
 
@@ -81,7 +71,6 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
       task.status = 'failed'
       task.error = error
       processingTaskId.value = null
-      saveTasksToStorage()
     }
   }
 
@@ -89,38 +78,20 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     const index = tasks.value.findIndex((t) => t.id === taskId)
     if (index !== -1) {
       tasks.value.splice(index, 1)
-      saveTasksToStorage()
     }
   }
 
   function clearCompletedTasks() {
     tasks.value = tasks.value.filter((task) => task.status !== 'completed')
-    saveTasksToStorage()
   }
 
   function clearAllTasks() {
     tasks.value = []
     processingTaskId.value = null
-    saveTasksToStorage()
-  }
-
-  function loadTasksFromStorage() {
-    const saved = localStorage.getItem('phrase-forge-tasks')
-    if (saved) {
-      try {
-        tasks.value = JSON.parse(saved)
-      } catch (error) {
-        console.error('Failed to load tasks:', error)
-      }
-    }
-  }
-
-  function saveTasksToStorage() {
-    localStorage.setItem('phrase-forge-tasks', JSON.stringify(tasks.value))
   }
 
   function generateTaskId(): string {
-    return `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    return `task_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
   }
 
   return {
@@ -137,6 +108,5 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     removeTask,
     clearCompletedTasks,
     clearAllTasks,
-    loadTasksFromStorage,
   }
 })
