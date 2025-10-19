@@ -8,7 +8,7 @@
           {{ getStatusText(status, task.result?.level) }}
         </span>
         <span v-if="status === 'processing' && task.startedAt" class="processing-time">
-          {{ formatProcessingTime(task.startedAt) }}
+          {{ processingTime }}
         </span>
       </div>
     </div>
@@ -68,8 +68,10 @@
 </template>
 
 <script setup lang="ts">
-import LoadingSpinner from './LoadingSpinner.vue'
 import { marked } from 'marked'
+import { useNow } from '@vueuse/core'
+import { computed } from 'vue'
+import LoadingSpinner from './LoadingSpinner.vue'
 import type { Task } from '@/types'
 
 interface Props {
@@ -77,7 +79,27 @@ interface Props {
   status: Task['status']
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const now = useNow({
+  interval: 1000,
+})
+
+const processingTime = computed(() => {
+  if (!props.task.startedAt) {
+    return undefined
+  }
+  const diff = now.value.getTime() - props.task.startedAt
+  const seconds = Math.floor(diff / 1000)
+
+  if (seconds < 60) {
+    return `${seconds}秒`
+  } else {
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes}分${remainingSeconds}秒`
+  }
+})
 
 function getStatusText(status: Task['status'], level?: string): string {
   switch (status) {
@@ -142,24 +164,6 @@ function formatTime(timestamp?: number): string {
 
   // 更早的时间
   return date.toLocaleDateString('zh-CN')
-}
-
-function formatProcessingTime(startedAt: number): string {
-  const now = Date.now()
-  const diff = now - startedAt
-  const seconds = Math.floor(diff / 1000)
-
-  if (seconds < 60) {
-    return `${seconds}秒`
-  } else if (seconds < 3600) {
-    const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = seconds % 60
-    return `${minutes}分${remainingSeconds}秒`
-  } else {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    return `${hours}时${minutes}分`
-  }
 }
 
 function renderMarkdown(text: string): string {
