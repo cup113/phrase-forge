@@ -59,7 +59,6 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
         apiConfigStore.apiConfig,
       )
       completeTask(taskId, response)
-      processingTaskId.value = taskId
     }
   }
 
@@ -91,10 +90,6 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     }
   }
 
-  function clearCompletedTasks() {
-    tasks.value = tasks.value.filter((task) => task.status !== 'completed')
-  }
-
   function clearAllTasks() {
     tasks.value = []
     processingTaskId.value = null
@@ -116,7 +111,6 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     completeTask,
     failTask,
     removeTask,
-    clearCompletedTasks,
     clearAllTasks,
   }
 })

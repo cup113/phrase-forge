@@ -2,57 +2,16 @@
   <div class="task-queue">
     <div class="queue-header">
       <h2>任务队列</h2>
-      <div class="queue-stats">
-        <span class="stat pending">待处理: {{ pendingTasks.length }}</span>
-        <span class="stat processing">处理中: {{ processingTaskId ? 1 : 0 }}</span>
-        <span class="stat completed">已完成: {{ completedTasks.length }}</span>
-        <span class="stat failed">失败: {{ failedTasks.length }}</span>
-      </div>
-    </div>
-
-    <!-- 处理中的任务 -->
-    <div v-if="currentProcessingTask" class="processing-section">
-      <h3>正在处理</h3>
-      <TaskItem :task="currentProcessingTask" status="processing" />
-    </div>
-
-    <!-- 待处理任务 -->
-    <div v-if="pendingTasks.length > 0" class="pending-section">
-      <h3>待处理任务</h3>
-      <div class="task-list">
-        <TaskItem v-for="task in pendingTasks" :key="task.id" :task="task" status="pending">
-          <template #actions>
-            <button class="btn-danger btn-small" @click="removeTask(task.id)">取消</button>
-          </template>
-        </TaskItem>
-      </div>
     </div>
 
     <!-- 已完成任务 -->
-    <div v-if="completedTasks.length > 0" class="completed-section">
+    <div v-if="tasks.length > 0" class="section">
       <div class="section-header">
         <h3>已完成任务</h3>
-        <button class="btn-secondary btn-small" @click="clearCompletedTasks">清空已完成</button>
+        <button class="btn-secondary btn-small" @click="clearTasks">清空</button>
       </div>
       <div class="task-list">
-        <TaskItem
-          v-for="task in completedTasks.slice(0, 10)"
-          :key="task.id"
-          :task="task"
-          status="completed"
-        />
-      </div>
-    </div>
-
-    <!-- 失败任务 -->
-    <div v-if="failedTasks.length > 0" class="failed-section">
-      <h3>失败任务</h3>
-      <div class="task-list">
-        <TaskItem v-for="task in failedTasks" :key="task.id" :task="task" status="failed">
-          <template #actions>
-            <button class="btn-danger btn-small" @click="removeTask(task.id)">删除</button>
-          </template>
-        </TaskItem>
+        <TaskItem v-for="task in tasks" :key="task.id" :task="task" status="completed" />
       </div>
     </div>
 
@@ -74,28 +33,11 @@ const showError =
 
 const taskQueueStore = useTaskQueueStore()
 
-const tasks = computed(() => taskQueueStore.tasks)
-const pendingTasks = computed(() => taskQueueStore.pendingTasks)
-const completedTasks = computed(() => taskQueueStore.completedTasks)
-const failedTasks = computed(() => taskQueueStore.failedTasks)
-const currentProcessingTask = computed(() => taskQueueStore.currentProcessingTask)
-const processingTaskId = computed(() => taskQueueStore.processingTaskId)
+const tasks = computed(() => taskQueueStore.tasks.slice().sort((a, b) => b.createdAt - a.createdAt))
 
-function removeTask(taskId: string) {
+function clearTasks() {
   try {
-    taskQueueStore.removeTask(taskId)
-  } catch (error) {
-    showError?.({
-      title: '删除失败',
-      message: '无法删除任务，请重试',
-      details: error instanceof Error ? error.message : '未知错误',
-    })
-  }
-}
-
-function clearCompletedTasks() {
-  try {
-    taskQueueStore.clearCompletedTasks()
+    taskQueueStore.clearAllTasks()
   } catch (error) {
     showError?.({
       title: '清理失败',
@@ -125,33 +67,6 @@ function clearCompletedTasks() {
 .queue-stats {
   display: flex;
   gap: 15px;
-}
-
-.stat {
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.stat.pending {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.stat.processing {
-  background: #cce7ff;
-  color: #004085;
-}
-
-.stat.completed {
-  background: #d4edda;
-  color: #155724;
-}
-
-.stat.failed {
-  background: #f8d7da;
-  color: #721c24;
 }
 
 .section-header {
@@ -205,10 +120,7 @@ h3 {
   font-size: 18px;
 }
 
-.processing-section,
-.pending-section,
-.completed-section,
-.failed-section {
+.section {
   margin-bottom: 20px;
 }
 

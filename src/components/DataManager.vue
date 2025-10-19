@@ -202,7 +202,7 @@ function importData() {
 // 数据清理
 function clearCompletedTasks() {
   if (confirm('确定要清空所有已完成的任务吗？此操作不可恢复。')) {
-    taskQueueStore.clearCompletedTasks()
+    taskQueueStore.clearAllTasks()
     showMessage('已完成任务已清空', 'success')
   }
 }

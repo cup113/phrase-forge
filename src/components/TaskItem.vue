@@ -1,13 +1,18 @@
 <template>
-  <div class="task-item" :class="status">
+  <div class="task-item" :class="task.status">
     <div class="task-header">
       <span class="task-keyword">{{ task.keyword }}</span>
       <div class="task-status-container">
-        <LoadingSpinner v-if="status === 'processing'" :show="true" size="small" :center="false" />
-        <span class="task-status" :class="[status, getLevelClass(task.result?.level)]">
-          {{ getStatusText(status, task.result?.level) }}
+        <LoadingSpinner
+          v-if="task.status === 'processing'"
+          :show="true"
+          size="small"
+          :center="false"
+        />
+        <span class="task-status" :class="[task.status, getLevelClass(task.result?.level)]">
+          {{ getStatusText(task.status, task.result?.level) }}
         </span>
-        <span v-if="status === 'processing' && task.startedAt" class="processing-time">
+        <span v-if="task.status === 'processing' && task.startedAt" class="processing-time">
           {{ processingTime }}
         </span>
       </div>
@@ -76,7 +81,6 @@ import type { Task } from '@/types'
 
 interface Props {
   task: Task
-  status: Task['status']
 }
 
 const props = defineProps<Props>()
