@@ -42,12 +42,7 @@
           <span class="label-icon">🎯</span>
           应用场景
         </label>
-        <textarea
-          id="scenario"
-          v-model="scenario"
-          placeholder="请描述这个句子使用的场景"
-          rows="2"
-        ></textarea>
+        <input id="scenario" v-model="scenario" placeholder="请描述这个句子使用的场景" />
       </div>
 
       <div class="form-actions">
@@ -80,9 +75,17 @@ import { useApiConfigStore } from '@/stores/apiConfig'
 const taskQueueStore = useTaskQueueStore()
 const apiConfigStore = useApiConfigStore()
 
-const keyword = ref('')
-const sentence = ref('')
-const scenario = ref('')
+const generateGetter = (key: 'keyword' | 'sentence' | 'scenario') => ({
+  get: () => {
+    return taskQueueStore.inputTaskForm[key]
+  },
+  set: (value: string) => {
+    taskQueueStore.inputTaskForm[key] = value
+  },
+})
+const keyword = computed(generateGetter('keyword'))
+const sentence = computed(generateGetter('sentence'))
+const scenario = computed(generateGetter('scenario'))
 const showSuccess = ref(false)
 
 const canSubmit = computed(() => {

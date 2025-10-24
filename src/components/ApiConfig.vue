@@ -12,7 +12,7 @@
       <div class="form-group">
         <label for="apiKey">
           <span class="label-icon">🔒</span>
-          API Key
+          API Key (暂只支持阿里云百炼)
         </label>
         <input
           id="apiKey"
@@ -30,13 +30,13 @@
       <div class="form-group">
         <label for="endpoint">
           <span class="label-icon">🌐</span>
-          API端点
+          API端点（不建议修改）
         </label>
         <input
           id="endpoint"
           v-model="endpoint"
           type="url"
-          placeholder="请输入API端点URL"
+          placeholder="请输入API 端点 URL"
           required
         />
         <small class="help-text">

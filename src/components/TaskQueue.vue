@@ -2,20 +2,22 @@
   <div class="task-queue">
     <div class="queue-header">
       <h2>任务队列</h2>
+      <button class="btn-secondary btn-small" @click="clearTasks">清空</button>
     </div>
 
-    <!-- 已完成任务 -->
     <div v-if="tasks.length > 0" class="section">
-      <div class="section-header">
-        <h3>已完成任务</h3>
-        <button class="btn-secondary btn-small" @click="clearTasks">清空</button>
-      </div>
       <div class="task-list">
-        <TaskItem v-for="task in tasks" :key="task.id" :task="task" status="completed" />
+        <TaskItem
+          v-for="task in tasks"
+          :key="task.id"
+          :task="task"
+          @recreate="handleRecreate"
+          @retry="handleRetry"
+          @delete="handleDelete"
+        />
       </div>
     </div>
 
-    <!-- 空状态 -->
     <div v-if="tasks.length === 0" class="empty-state">
       <p>暂无任务，请先提交句子进行评估</p>
     </div>
@@ -44,6 +46,20 @@ function clearTasks() {
       message: '无法清空已完成任务，请重试',
       details: error instanceof Error ? error.message : '未知错误',
     })
+  }
+}
+
+function handleRecreate(taskId: string) {
+  taskQueueStore.recreateTask(taskId)
+}
+
+function handleRetry(taskId: string) {
+  taskQueueStore.retryTask(taskId)
+}
+
+function handleDelete(taskId: string) {
+  if (confirm('确定要删除这个任务吗？')) {
+    taskQueueStore.removeTask(taskId)
   }
 }
 </script>

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import { useHistoryStore } from './history'
 import type { Task } from '../types'
@@ -8,10 +8,10 @@ import { useApiConfigStore } from './apiConfig'
 
 export const useTaskQueueStore = defineStore('taskQueue', () => {
   const tasks = useLocalStorage<Task[]>('phrase-forge-tasks', [])
-  const processingTaskId = ref<string | null>(null)
-
-  const pendingTasks = computed(() => {
-    return tasks.value.filter((task) => task.status === 'pending')
+  const inputTaskForm = useLocalStorage('phrase-forge-input-task-form', {
+    keyword: '',
+    sentence: '',
+    scenario: '',
   })
 
   const completedTasks = computed(() => {
@@ -20,16 +20,9 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
       .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
   })
 
-  const failedTasks = computed(() => {
-    return tasks.value.filter((task) => task.status === 'failed')
-  })
-
-  const currentProcessingTask = computed(() => {
-    return tasks.value.find((task) => task.id === processingTaskId.value)
-  })
-
   function addTask(keyword: string, sentence: string, scenario: string) {
     const task: Task = {
+      type: 'sentence-making',
       id: generateTaskId(),
       keyword,
       sentence,
@@ -39,11 +32,27 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     }
     tasks.value.push(task)
 
-    if (processingTaskId.value === null) {
-      startProcessing(task.id)
-    }
+    startProcessing(task.id)
 
     return task.id
+  }
+
+  // 重新造句 - 基于现有任务创建新任务
+  function recreateTask(taskId: string) {
+    const task = tasks.value.find((t) => t.id === taskId)
+    if (task) {
+      inputTaskForm.value.keyword = task.keyword
+      inputTaskForm.value.scenario = task.scenario
+    }
+  }
+
+  function retryTask(taskId: string) {
+    const task = tasks.value.find((t) => t.id === taskId)
+    if (task && (task.status === 'failed' || task.status === 'pending')) {
+      task.status = 'pending'
+      task.error = undefined
+      startProcessing(task.id)
+    }
   }
 
   async function startProcessing(taskId: string) {
@@ -69,7 +78,6 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
       task.status = 'completed'
       task.result = result
       task.completedAt = Date.now()
-      processingTaskId.value = null
       historyStore.addRecord(task)
     }
   }
@@ -79,7 +87,6 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     if (task) {
       task.status = 'failed'
       task.error = error
-      processingTaskId.value = null
     }
   }
 
@@ -92,7 +99,6 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
 
   function clearAllTasks() {
     tasks.value = []
-    processingTaskId.value = null
   }
 
   function generateTaskId(): string {
@@ -101,16 +107,15 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
 
   return {
     tasks,
-    pendingTasks,
+    inputTaskForm,
     completedTasks,
-    failedTasks,
-    currentProcessingTask,
-    processingTaskId,
     addTask,
     startProcessing,
     completeTask,
     failTask,
     removeTask,
     clearAllTasks,
+    recreateTask,
+    retryTask,
   }
 })

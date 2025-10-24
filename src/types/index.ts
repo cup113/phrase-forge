@@ -1,9 +1,20 @@
-// 统一的数据类型定义
-export interface EvaluationResult {
+export interface SentenceMakingEvaluation {
   level: string
   reason: string
   suggestions?: string[]
   explanation?: string
+}
+
+export interface TranslationComprisonOptionEvaluation {
+  text: string
+  level: 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C'
+  reason: string
+  example: string
+}
+
+export interface TranslationComparisonEvaluation {
+  explanation: string
+  options: TranslationComprisonOptionEvaluation[]
 }
 
 export interface ApiUsage {
@@ -12,13 +23,9 @@ export interface ApiUsage {
   modelId: string
 }
 
-export interface Task {
+export interface TaskBasics {
   id: string
-  keyword: string
-  sentence: string
-  scenario: string
-  status: 'pending' | 'processing' | 'completed' | 'failed'
-  result?: EvaluationResult
+  status: 'incomplete' | 'pending' | 'processing' | 'completed' | 'failed'
   usage?: ApiUsage
   error?: string
   createdAt: number
@@ -26,7 +33,22 @@ export interface Task {
   completedAt?: number
 }
 
-// HistoryRecord 复用 Task 结构
+export interface SentenceMakingTaskCore {
+  type?: 'sentence-making'
+  keyword: string
+  sentence: string
+  scenario: string
+  result?: SentenceMakingEvaluation
+}
+
+export interface TranslationComparisonTaskCore {
+  type: 'translation-comparison'
+  original: string
+  translation: (string[] | string)[]
+}
+
+export type Task = TaskBasics & SentenceMakingTaskCore
+
 export type HistoryRecord = Task & { status: 'completed' }
 
 export interface ApiConfig {

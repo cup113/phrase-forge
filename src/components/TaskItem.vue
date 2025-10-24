@@ -64,6 +64,26 @@
     <div class="task-actions">
       <slot name="actions">
         <!-- 默认操作区域 -->
+        <div class="action-buttons">
+          <button
+            v-if="task.status === 'completed'"
+            class="btn-action btn-recreate"
+            @click="emit('recreate', task.id)"
+          >
+            重新造句
+          </button>
+
+          <button
+            v-if="task.status === 'failed'"
+            class="btn-action btn-retry"
+            @click="emit('retry', task.id)"
+          >
+            重试
+          </button>
+
+          <button class="btn-action btn-delete" @click="emit('delete', task.id)">删除</button>
+        </div>
+
         <span v-if="task.completedAt" class="task-time">
           {{ formatTime(task.completedAt) }}
         </span>
@@ -83,7 +103,14 @@ interface Props {
   task: Task
 }
 
+interface Emit {
+  (event: 'recreate', id: string): void
+  (event: 'retry', id: string): void
+  (event: 'delete', id: string): void
+}
+
 const props = defineProps<Props>()
+const emit = defineEmits<Emit>()
 
 const now = useNow({
   interval: 1000,
@@ -364,6 +391,48 @@ function renderMarkdown(text: string): string {
   justify-content: space-between;
   align-items: center;
   margin-top: 10px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-action {
+  padding: 4px 8px;
+  font-size: 11px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-recreate {
+  background: #17a2b8;
+  color: white;
+}
+
+.btn-recreate:hover {
+  background: #138496;
+}
+
+.btn-retry {
+  background: #ffc107;
+  color: #212529;
+}
+
+.btn-retry:hover {
+  background: #e0a800;
+}
+
+.btn-delete {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #c82333;
 }
 
 .task-time {
