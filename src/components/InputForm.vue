@@ -8,6 +8,16 @@
       </div>
     </div>
 
+    <!-- API Key 配置警告 -->
+    <div v-if="!apiConfigStore.isConfigured" class="api-warning">
+      <div class="warning-icon">⚠️</div>
+      <div class="warning-content">
+        <strong>API Key 未配置</strong>
+        <p>请先配置 API Key 才能使用评估功能</p>
+        <RouterLink to="/settings" class="warning-link"> 前往设置页面配置 </RouterLink>
+      </div>
+    </div>
+
     <form @submit.prevent="submitSentence" class="sentence-form">
       <div class="form-group">
         <label for="keyword">
@@ -46,14 +56,62 @@
       </div>
 
       <div class="form-actions">
-        <button type="submit" class="btn-primary" :disabled="!canSubmit">
+        <button type="submit" class="btn-primary flex-grow" :disabled="!canSubmit">
           <span class="btn-icon">🚀</span>
           提交评估
         </button>
-        <button type="button" class="btn-secondary" @click="clearForm">
+        <button type="button" class="btn-secondary flex-grow" @click="clearForm">
           <span class="btn-icon">🗑️</span>
           清空
         </button>
+      </div>
+
+      <!-- 第二行按钮 -->
+      <div class="form-actions-secondary">
+        <button
+          v-if="hasIncompleteTasks"
+          type="button"
+          class="btn-primary flex-grow"
+          @click="loadNextTask"
+        >
+          <span class="btn-icon">⏭️</span>
+          下一个任务
+        </button>
+        <button type="button" class="btn-secondary flex-grow" @click="toggleBatchInput">
+          <span class="btn-icon">📋</span>
+          批量添加任务
+        </button>
+      </div>
+
+      <!-- 批量输入区域 -->
+      <div v-if="showBatchInput" class="batch-input-section">
+        <div class="form-group">
+          <label for="batch-keywords">
+            <span class="label-icon">📝</span>
+            批量关键词（每行一个）
+          </label>
+          <textarea
+            id="batch-keywords"
+            v-model="batchKeywords"
+            placeholder="请输入要练习的英语单词或短语，每行一个"
+            rows="4"
+          ></textarea>
+        </div>
+        <div class="batch-actions">
+          <button
+            type="button"
+            class="btn-primary"
+            @click="addBatchTasks"
+            :disabled="!batchKeywords.trim()"
+          >
+            <span class="btn-icon">➕</span>
+            添加任务
+          </button>
+          <button type="button" class="btn-secondary" @click="clearBatchInput">
+            <span class="btn-icon">🗑️</span>
+            清空
+          </button>
+        </div>
       </div>
     </form>
 
@@ -71,6 +129,7 @@
 import { ref, computed } from 'vue'
 import { useTaskQueueStore } from '@/stores/taskQueue'
 import { useApiConfigStore } from '@/stores/apiConfig'
+import { RouterLink } from 'vue-router'
 
 const taskQueueStore = useTaskQueueStore()
 const apiConfigStore = useApiConfigStore()
@@ -88,6 +147,11 @@ const sentence = computed(generateGetter('sentence'))
 const scenario = computed(generateGetter('scenario'))
 const showSuccess = ref(false)
 
+// 批量添加相关状态
+const showBatchInput = ref(false)
+const batchKeywords = ref('')
+const hasIncompleteTasks = computed(() => taskQueueStore.hasIncompleteTasks)
+
 const canSubmit = computed(() => {
   return keyword.value.trim() && sentence.value.trim() && apiConfigStore.isConfigured
 })
@@ -97,7 +161,22 @@ function submitSentence() {
     return
   }
 
-  taskQueueStore.addTask(keyword.value.trim(), sentence.value.trim(), scenario.value.trim())
+  // 检查当前关键词是否对应一个 incomplete 任务
+  const incompleteTask = taskQueueStore.incompleteTasks.find(
+    (task) => task.keyword === keyword.value.trim(),
+  )
+
+  if (incompleteTask) {
+    // 如果是 incomplete 任务，更新它而不是创建新任务
+    taskQueueStore.completeIncompleteTask(
+      incompleteTask.id,
+      sentence.value.trim(),
+      scenario.value.trim(),
+    )
+  } else {
+    // 否则创建新任务
+    taskQueueStore.addTask(keyword.value.trim(), sentence.value.trim(), scenario.value.trim())
+  }
 
   showSuccess.value = true
   clearForm()
@@ -113,6 +192,43 @@ function clearForm() {
   sentence.value = ''
   scenario.value = ''
 }
+
+function toggleBatchInput() {
+  showBatchInput.value = !showBatchInput.value
+  if (!showBatchInput.value) {
+    clearBatchInput()
+  }
+}
+
+function clearBatchInput() {
+  batchKeywords.value = ''
+}
+
+function addBatchTasks() {
+  if (!batchKeywords.value.trim()) {
+    return
+  }
+
+  const keywords = batchKeywords.value.split('\n').filter((k) => k.trim())
+  taskQueueStore.addIncompleteTasks(keywords)
+
+  showSuccess.value = true
+  clearBatchInput()
+  showBatchInput.value = false
+
+  // 3秒后隐藏成功消息
+  setTimeout(() => {
+    showSuccess.value = false
+  }, 3000)
+}
+
+function loadNextTask() {
+  const nextTask = taskQueueStore.getNextIncompleteTask()
+  if (nextTask) {
+    sentence.value = ''
+    scenario.value = ''
+  }
+}
 </script>
 
 <style scoped>
@@ -124,8 +240,8 @@ function clearForm() {
 .form-header {
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 25px;
+  gap: var(--spacing-2xl);
+  margin-bottom: var(--spacing-2xl);
 }
 
 .form-icon {
@@ -135,8 +251,8 @@ function clearForm() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #20c997, #17a2b8);
-  border-radius: 12px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  border-radius: var(--border-radius-lg);
   color: white;
 }
 
@@ -144,130 +260,111 @@ function clearForm() {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .form-title p {
-  margin: 5px 0 0 0;
-  color: #666;
+  margin: var(--spacing-xs) 0 0 0;
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
 }
 
 .sentence-form {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--color-surface);
   backdrop-filter: blur(10px);
-  padding: 25px;
-  border-radius: 12px;
+  padding: var(--spacing-2xl);
+  border-radius: var(--border-radius-lg);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--box-shadow);
 }
 
-.form-group {
-  margin-bottom: 20px;
+.batch-input-section {
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-xl);
+  background: rgba(248, 249, 250, 0.8);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
 }
 
-label {
+.batch-actions {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #333;
-  font-size: 14px;
-}
-
-.label-icon {
-  font-size: 16px;
-}
-
-input,
-textarea {
-  width: 100%;
-  padding: 12px 15px;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  font-size: 14px;
-  box-sizing: border-box;
-  font-family: inherit;
-  background: white;
-  transition: all 0.2s ease;
-}
-
-input:focus,
-textarea:focus {
-  outline: none;
-  border-color: #20c997;
-  box-shadow: 0 0 0 3px rgba(32, 201, 151, 0.1);
-  transform: translateY(-1px);
-}
-
-textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-.form-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 25px;
-}
-
-.btn-primary,
-.btn-secondary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex: 1;
-  justify-content: center;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #20c997, #17a2b8);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(32, 201, 151, 0.3);
-}
-
-.btn-primary:disabled {
-  background: #6c757d;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-2xl);
 }
 
 .btn-icon {
   font-size: 16px;
 }
 
+.api-warning {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2xl);
+  margin-bottom: var(--spacing-xl);
+  background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+  color: #856404;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-radius: var(--border-radius);
+  border: 1px solid #ffeaa7;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.1);
+  animation: slideIn 0.3s ease;
+}
+
+.warning-icon {
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-warning);
+  border-radius: 50%;
+  color: white;
+}
+
+.warning-content {
+  flex: 1;
+}
+
+.warning-content strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: var(--spacing-xs);
+}
+
+.warning-content p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.warning-link {
+  display: inline-block;
+  margin-top: var(--spacing-sm);
+  color: #856404;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 13px;
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: rgba(255, 193, 7, 0.2);
+  border-radius: var(--border-radius-sm);
+  transition: var(--transition);
+}
+
+.warning-link:hover {
+  background: rgba(255, 193, 7, 0.3);
+  text-decoration: underline;
+}
+
 .success-message {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-top: 20px;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
   background: linear-gradient(135deg, #d4edda, #c3e6cb);
   color: #155724;
-  padding: 16px 20px;
-  border-radius: 8px;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-radius: var(--border-radius);
   border: 1px solid #c3e6cb;
   box-shadow: 0 2px 8px rgba(40, 167, 69, 0.1);
   animation: slideIn 0.3s ease;
@@ -280,7 +377,7 @@ textarea {
 .success-content {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--spacing-xs);
 }
 
 .success-content strong {

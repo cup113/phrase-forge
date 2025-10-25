@@ -20,6 +20,12 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
       .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0))
   })
 
+  const incompleteTasks = computed(() => {
+    return tasks.value.filter((task) => task.status === 'incomplete')
+  })
+
+  const hasIncompleteTasks = computed(() => incompleteTasks.value.length > 0)
+
   function addTask(keyword: string, sentence: string, scenario: string) {
     const task: Task = {
       type: 'sentence-making',
@@ -37,6 +43,49 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     return task.id
   }
 
+  // 批量添加未完成任务
+  function addIncompleteTasks(keywords: string[]) {
+    const newTasks: Task[] = keywords
+      .filter((keyword) => keyword.trim())
+      .map((keyword) => ({
+        type: 'sentence-making',
+        id: generateTaskId(),
+        keyword: keyword.trim(),
+        sentence: '',
+        scenario: '',
+        status: 'incomplete',
+        createdAt: Date.now(),
+      }))
+
+    tasks.value.push(...newTasks)
+    return newTasks.length
+  }
+
+  // 获取下一个未完成任务
+  function getNextIncompleteTask() {
+    const incompleteTask = tasks.value.find((task) => task.status === 'incomplete')
+    if (incompleteTask) {
+      inputTaskForm.value.keyword = incompleteTask.keyword
+      inputTaskForm.value.sentence = ''
+      inputTaskForm.value.scenario = ''
+      return incompleteTask
+    }
+    return null
+  }
+
+  // 完成未完成任务（转换为待处理状态）
+  function completeIncompleteTask(taskId: string, sentence: string, scenario: string) {
+    const task = tasks.value.find((t) => t.id === taskId)
+    if (task && task.status === 'incomplete') {
+      task.sentence = sentence
+      task.scenario = scenario
+      task.status = 'pending'
+      startProcessing(task.id)
+      return true
+    }
+    return false
+  }
+
   // 重新造句 - 基于现有任务创建新任务
   function recreateTask(taskId: string) {
     const task = tasks.value.find((t) => t.id === taskId)
@@ -48,9 +97,10 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
 
   function retryTask(taskId: string) {
     const task = tasks.value.find((t) => t.id === taskId)
-    if (task && (task.status === 'failed' || task.status === 'pending')) {
+    if (task) {
       task.status = 'pending'
       task.error = undefined
+      task.startedAt = Date.now()
       startProcessing(task.id)
     }
   }
@@ -61,13 +111,17 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
       task.status = 'processing'
       task.startedAt = Date.now()
       const apiConfigStore = useApiConfigStore()
-      const response = await evaluateSentence(
-        task.keyword,
-        task.sentence,
-        task.scenario,
-        apiConfigStore.apiConfig,
-      )
-      completeTask(taskId, response)
+      try {
+        const response = await evaluateSentence(
+          task.keyword,
+          task.sentence,
+          task.scenario,
+          apiConfigStore.apiConfig,
+        )
+        completeTask(taskId, response)
+      } catch (error) {
+        failTask(taskId, error instanceof Error ? error.message : 'Unknown error')
+      }
     }
   }
 
@@ -109,7 +163,12 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     tasks,
     inputTaskForm,
     completedTasks,
+    incompleteTasks,
+    hasIncompleteTasks,
     addTask,
+    addIncompleteTasks,
+    getNextIncompleteTask,
+    completeIncompleteTask,
     startProcessing,
     completeTask,
     failTask,

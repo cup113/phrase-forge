@@ -35,7 +35,15 @@ const showError =
 
 const taskQueueStore = useTaskQueueStore()
 
-const tasks = computed(() => taskQueueStore.tasks.slice().sort((a, b) => b.createdAt - a.createdAt))
+const tasks = computed(() => {
+  return taskQueueStore.tasks.slice().sort((a, b) => {
+    // incomplete 任务排在最后
+    if (a.status === 'incomplete' && b.status !== 'incomplete') return 1
+    if (a.status !== 'incomplete' && b.status === 'incomplete') return -1
+    // 其他任务按创建时间倒序排列
+    return b.createdAt - a.createdAt
+  })
+})
 
 function clearTasks() {
   try {
@@ -73,69 +81,43 @@ function handleDelete(taskId: string) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e9ecef;
+  margin-bottom: var(--spacing-2xl);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .queue-stats {
   display: flex;
-  gap: 15px;
+  gap: var(--spacing-2xl);
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: var(--spacing-2xl);
 }
 
 .task-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.btn-small {
-  padding: 5px 10px;
-  font-size: 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #545b62;
-}
-
-.btn-danger {
-  background: #dc3545;
-  color: white;
-}
-
-.btn-danger:hover {
-  background: #c82333;
+  gap: var(--spacing-md);
 }
 
 .empty-state {
   text-align: center;
-  padding: 40px;
-  color: #6c757d;
+  padding: var(--spacing-3xl);
+  color: var(--color-text-muted);
 }
 
 h3 {
-  margin: 20px 0 15px 0;
-  color: #333;
+  margin: var(--spacing-xl) 0 var(--spacing-2xl) 0;
+  color: var(--color-text-primary);
   font-size: 18px;
 }
 
 .section {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-xl);
 }
 
 /* 响应式设计 */
@@ -143,7 +125,7 @@ h3 {
   .queue-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 15px;
+    gap: var(--spacing-2xl);
   }
 
   .queue-stats {
@@ -155,19 +137,19 @@ h3 {
   .section-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: var(--spacing-md);
   }
 
   .task-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--spacing-sm);
   }
 
   .task-actions {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--spacing-sm);
   }
 
   .task-status-container {
@@ -177,20 +159,20 @@ h3 {
 
 @media (max-width: 480px) {
   .task-queue {
-    padding: 15px;
+    padding: var(--spacing-2xl);
   }
 
   .queue-stats {
-    gap: 8px;
+    gap: var(--spacing-sm);
   }
 
   .stat {
     font-size: 11px;
-    padding: 4px 8px;
+    padding: var(--spacing-xs) var(--spacing-sm);
   }
 
   .task-item {
-    padding: 12px;
+    padding: var(--spacing-md);
   }
 
   .task-keyword {
@@ -202,7 +184,7 @@ h3 {
   }
 
   .result-suggestions ul {
-    padding-left: 15px;
+    padding-left: var(--spacing-2xl);
   }
 }
 </style>

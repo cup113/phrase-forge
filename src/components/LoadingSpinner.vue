@@ -74,10 +74,10 @@ withDefaults(defineProps<Props>(), {
   box-sizing: border-box;
   display: block;
   position: absolute;
-  border: 2px solid #667eea;
+  border: 2px solid var(--color-info);
   border-radius: 50%;
   animation: spinner 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-  border-color: #667eea transparent transparent transparent;
+  border-color: var(--color-info) transparent transparent transparent;
 }
 
 .spinner-small .spinner-ring {
@@ -127,20 +127,20 @@ withDefaults(defineProps<Props>(), {
 }
 
 .spinner-message {
-  margin-top: 12px;
+  margin-top: var(--spacing-md);
   text-align: center;
-  color: #667eea;
+  color: var(--color-info);
   font-size: 14px;
   font-weight: 500;
 }
 
 .spinner-small .spinner-message {
   font-size: 12px;
-  margin-top: 8px;
+  margin-top: var(--spacing-sm);
 }
 
 .spinner-large .spinner-message {
   font-size: 16px;
-  margin-top: 16px;
+  margin-top: var(--spacing-lg);
 }
 </style>

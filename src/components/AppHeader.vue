@@ -25,16 +25,16 @@ defineProps<Props>()
 
 <style scoped>
 .app-header {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--color-surface);
   backdrop-filter: blur(10px);
-  padding: 20px 0;
+  padding: var(--spacing-xl) 0;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .header-content {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 var(--spacing-xl);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -48,45 +48,44 @@ defineProps<Props>()
   margin: 0;
   font-size: 2.5rem;
   font-weight: 700;
-  color: #333;
-  background: linear-gradient(135deg, #20c997, #17a2b8);
+  color: var(--color-text-primary);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .page-subtitle {
-  margin: 10px 0 0 0;
+  margin: var(--spacing-sm) 0 0 0;
   font-size: 1.1rem;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 300;
 }
 
 .header-nav {
   display: flex;
-  gap: 20px;
+  gap: var(--spacing-xl);
 }
 
 .nav-link {
-  color: #333;
+  color: var(--color-text-primary);
   text-decoration: none;
   font-weight: 500;
-  padding: 8px 16px;
-  border-radius: 6px;
-  transition: all 0.2s ease;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--border-radius-sm);
+  transition: var(--transition);
 }
 
 .nav-link:hover,
 .nav-link.router-link-active {
   background: rgba(32, 201, 151, 0.1);
-  color: #20c997;
+  color: var(--color-primary);
 }
 
-/* 响应式设计 */
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;
-    gap: 15px;
+    gap: var(--spacing-2xl);
     text-align: center;
   }
 
@@ -116,15 +115,9 @@ defineProps<Props>()
     font-size: 0.9rem;
   }
 
-  .header-nav {
-    flex-direction: column;
-    gap: 10px;
-    width: 100%;
-  }
-
   .nav-link {
     text-align: center;
-    padding: 10px;
+    padding: var(--spacing-md);
   }
 }
 </style>

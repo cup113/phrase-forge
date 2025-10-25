@@ -3,8 +3,8 @@
     <div class="config-header">
       <div class="config-icon">🔑</div>
       <div class="config-title">
-        <h2>API配置</h2>
-        <p>配置您的API密钥以开始使用语匠</p>
+        <h2>API 配置</h2>
+        <p>配置您的 API 密钥以开始使用语匠</p>
       </div>
     </div>
 
@@ -23,7 +23,7 @@
         />
         <small class="help-text">
           <span class="help-icon">💡</span>
-          请确保您的API Key有足够的额度，我们不会存储您的API Key
+          请确保您的 API Key 有足够的额度，我们不会存储您的 API Key
         </small>
       </div>
 
@@ -46,11 +46,11 @@
       </div>
 
       <div class="form-actions">
-        <button type="submit" class="btn-primary">
+        <button type="submit" class="btn-primary flex-grow">
           <span class="btn-icon">💾</span>
           保存配置
         </button>
-        <button type="button" class="btn-secondary" @click="resetConfig">
+        <button type="button" class="btn-secondary flex-grow" @click="resetConfig">
           <span class="btn-icon">🔄</span>
           重置
         </button>
@@ -165,7 +165,7 @@ label {
 
 input {
   width: 100%;
-  padding: 12px 15px;
+  padding: 8px 12px;
   border: 2px solid #e9ecef;
   border-radius: 8px;
   font-size: 14px;
@@ -195,52 +195,6 @@ input:focus {
   font-size: 12px;
   flex-shrink: 0;
   margin-top: 1px;
-}
-
-.form-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 25px;
-}
-
-.btn-primary,
-.btn-secondary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  flex: 1;
-  justify-content: center;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #20c997, #17a2b8);
-  color: white;
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(32, 201, 151, 0.3);
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: #5a6268;
-  transform: translateY(-1px);
-}
-
-.btn-icon {
-  font-size: 16px;
 }
 
 .config-status {

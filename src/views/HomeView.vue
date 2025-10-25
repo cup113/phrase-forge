@@ -3,12 +3,10 @@
     <AppHeader title="语匠 - Phrase Forge" subtitle="英语写作智能辅助工具" />
 
     <main class="main-content">
-      <!-- 输入表单区域 -->
       <section class="input-section">
         <InputForm />
       </section>
 
-      <!-- 任务队列区域 -->
       <section class="queue-section">
         <TaskQueue />
       </section>
@@ -21,22 +19,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import InputForm from '@/components/InputForm.vue'
 import TaskQueue from '@/components/TaskQueue.vue'
-import { useTaskProcessor } from '@/services/taskProcessor'
-import { useTaskQueueStore } from '@/stores/taskQueue'
-import { useApiConfigStore } from '@/stores/apiConfig'
-
-const taskQueueStore = useTaskQueueStore()
-const apiConfigStore = useApiConfigStore()
-const { processNext } = useTaskProcessor(taskQueueStore, apiConfigStore)
-
-onMounted(() => {
-  // 启动任务处理器
-  processNext()
-})
 </script>
 
 <style scoped>

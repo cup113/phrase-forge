@@ -35,6 +35,22 @@
           <div class="stat-label">最近7天</div>
         </div>
       </div>
+
+      <div class="stat-item">
+        <div class="stat-icon">🔢</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ totalTokens }}</div>
+          <div class="stat-label">总 Token</div>
+        </div>
+      </div>
+
+      <div class="stat-item">
+        <div class="stat-icon">💬</div>
+        <div class="stat-info">
+          <div class="stat-value">{{ averageTokens }}</div>
+          <div class="stat-label">平均 Token</div>
+        </div>
+      </div>
     </div>
 
     <!-- 等级分布图表 -->
@@ -117,6 +133,33 @@ const recentActivity = computed(() => {
   return history.value.filter((record: HistoryRecord) => record.createdAt > oneWeekAgo).length
 })
 
+const totalTokensRaw = computed(() => {
+  return history.value.reduce((sum: number, record: HistoryRecord) => {
+    const input = record.result?.usage?.reduce((acc, rec) => acc + rec.inputTokens, 0) || 0
+    const output = record.result?.usage?.reduce((acc, rec) => acc + rec.outputTokens, 0) || 0
+    return sum + input + output
+  }, 0)
+})
+
+// Token 统计
+const totalTokens = computed(() => {
+  if (totalTokensRaw.value >= 1000) {
+    return (totalTokensRaw.value / 1000).toFixed(1) + 'K'
+  }
+  return totalTokensRaw.value.toString()
+})
+
+const averageTokens = computed(() => {
+  if (totalTokensRaw.value > 0) {
+    const avg = totalTokensRaw.value / totalRecords.value
+    if (avg >= 1000) {
+      return (avg / 1000).toFixed(1) + 'K'
+    }
+    return avg.toFixed(0)
+  }
+  return 'N/A'
+})
+
 // 等级分布
 const levelDistribution = computed(() => {
   const levels = ['A+', 'A', 'B+', 'B', 'C+', 'C']
@@ -176,25 +219,25 @@ function getLevelClass(level: string): string {
 
 <style scoped>
 .progress-stats {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--color-surface);
   backdrop-filter: blur(10px);
-  border-radius: 12px;
-  padding: 25px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-2xl);
+  box-shadow: var(--box-shadow);
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .progress-stats h3 {
-  margin: 0 0 25px 0;
-  color: #333;
+  margin: 0 0 var(--spacing-2xl) 0;
+  color: var(--color-text-primary);
   font-size: 1.5rem;
   font-weight: 600;
   text-align: center;
 }
 
 .progress-stats h4 {
-  margin: 0 0 15px 0;
-  color: #555;
+  margin: 0 0 var(--spacing-2xl) 0;
+  color: var(--color-gray-700);
   font-size: 1.1rem;
   font-weight: 500;
 }
@@ -203,18 +246,18 @@ function getLevelClass(level: string): string {
 .stats-overview {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-3xl);
 }
 
 .stat-item {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 15px;
+  gap: var(--spacing-2xl);
+  padding: var(--spacing-2xl);
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-sm);
 }
 
 .stat-icon {
@@ -225,7 +268,7 @@ function getLevelClass(level: string): string {
   align-items: center;
   justify-content: center;
   background: rgba(32, 201, 151, 0.1);
-  border-radius: 8px;
+  border-radius: var(--border-radius);
 }
 
 .stat-info {
@@ -235,26 +278,26 @@ function getLevelClass(level: string): string {
 .stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #20c997;
+  color: var(--color-primary);
   line-height: 1;
 }
 
 .stat-label {
   font-size: 0.85rem;
-  color: #666;
-  margin-top: 4px;
+  color: var(--color-text-secondary);
+  margin-top: var(--spacing-xs);
 }
 
 /* 等级分布 */
 .level-distribution {
-  margin-bottom: 30px;
+  margin-bottom: var(--spacing-3xl);
 }
 
 .distribution-chart {
   display: flex;
   height: 40px;
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: var(--color-gray-100);
+  border-radius: var(--border-radius);
   overflow: hidden;
 }
 
@@ -263,7 +306,7 @@ function getLevelClass(level: string): string {
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: transform 0.3s ease;
+  transition: var(--transition-slow);
   transform: scale(1);
   min-width: 40px;
 }
@@ -277,18 +320,6 @@ function getLevelClass(level: string): string {
   display: none;
 }
 
-.level-excellent {
-  background: linear-gradient(135deg, #28a745, #20c997);
-}
-
-.level-good {
-  background: linear-gradient(135deg, #17a2b8, #6f42c1);
-}
-
-.level-average {
-  background: linear-gradient(135deg, #ffc107, #fd7e14);
-}
-
 .level-label {
   color: white;
   font-size: 12px;
@@ -300,7 +331,7 @@ function getLevelClass(level: string): string {
   position: absolute;
   top: -20px;
   font-size: 10px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -314,7 +345,7 @@ function getLevelClass(level: string): string {
   justify-content: space-between;
   align-items: flex-end;
   height: 240px;
-  padding: 10px 0;
+  padding: var(--spacing-md) 0;
 }
 
 .trend-day {
@@ -327,9 +358,9 @@ function getLevelClass(level: string): string {
 
 .trend-bar {
   width: 20px;
-  background: linear-gradient(to top, #20c997, #17a2b8);
-  border-radius: 4px 4px 0 0;
-  transition: all 0.3s ease;
+  background: linear-gradient(to top, var(--color-primary), var(--color-secondary));
+  border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;
+  transition: var(--transition-slow);
   min-height: 4px;
 }
 
@@ -339,16 +370,16 @@ function getLevelClass(level: string): string {
 }
 
 .trend-label {
-  margin-top: 8px;
+  margin-top: var(--spacing-sm);
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
 .trend-count {
   font-size: 10px;
-  color: #999;
-  margin-top: 2px;
+  color: var(--color-text-muted);
+  margin-top: var(--spacing-xs);
 }
 
 /* 响应式设计 */
@@ -362,7 +393,7 @@ function getLevelClass(level: string): string {
   }
 
   .progress-stats {
-    padding: 20px;
+    padding: var(--spacing-xl);
   }
 }
 

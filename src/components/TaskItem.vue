@@ -18,9 +18,15 @@
       </div>
     </div>
 
-    <div class="task-sentence">{{ task.sentence }}</div>
+    <div v-if="task.status !== 'incomplete'" class="task-sentence">{{ task.sentence }}</div>
 
-    <div v-if="task.scenario" class="task-scenario">场景: {{ task.scenario }}</div>
+    <div v-if="task.scenario && task.status !== 'incomplete'" class="task-scenario">
+      场景: {{ task.scenario }}
+    </div>
+
+    <div v-if="task.status === 'incomplete'" class="task-incomplete">
+      <span class="incomplete-label">待完成</span>
+    </div>
 
     <div v-if="task.error" class="task-error">{{ task.error }}</div>
 
@@ -63,19 +69,11 @@
       <slot name="actions">
         <!-- 默认操作区域 -->
         <div class="action-buttons">
-          <button
-            v-if="canRetry"
-            class="btn-action btn-recreate"
-            @click="emit('recreate', task.id)"
-          >
+          <button class="btn-action btn-recreate" @click="emit('recreate', task.id)">
             重新造句
           </button>
 
-          <button
-            v-if="task.status === 'failed'"
-            class="btn-action btn-retry"
-            @click="emit('retry', task.id)"
-          >
+          <button v-if="canRetry" class="btn-action btn-retry" @click="emit('retry', task.id)">
             重试
           </button>
 
@@ -128,7 +126,7 @@ const processingTime = computed(() => {
   if (processingSeconds.value === undefined) {
     return undefined
   }
-  return `${processingSeconds.value.toString().padStart(3, '0')}/120`
+  return `${processingSeconds.value.toString().padStart(3, '0')} s`
 })
 
 const canRetry = computed(() => {
@@ -139,6 +137,8 @@ const canRetry = computed(() => {
 
 function getStatusText(status: Task['status'], level?: string): string {
   switch (status) {
+    case 'incomplete':
+      return '未开始'
     case 'pending':
       return '等待中'
     case 'processing':
@@ -210,142 +210,124 @@ function renderMarkdown(text: string): string {
 <style scoped>
 .task-item {
   background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  padding: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-md);
+  box-shadow: var(--box-shadow-sm);
 }
 
 .task-item.processing {
-  border-left: 4px solid #17a2b8;
+  border-left: 4px solid var(--color-secondary);
 }
 
 .task-item.pending {
-  border-left: 4px solid #ffc107;
+  border-left: 4px solid var(--color-warning);
 }
 
 .task-item.completed {
-  border-left: 4px solid #20c997;
+  border-left: 4px solid var(--color-primary);
 }
 
 .task-item.failed {
-  border-left: 4px solid #dc3545;
+  border-left: 4px solid var(--color-danger);
+}
+
+.task-item.incomplete {
+  border-left: 4px solid var(--color-warning);
 }
 
 .task-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .task-keyword {
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .task-status-container {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .processing-time {
   font-size: 11px;
-  color: #6c757d;
-  background: #f8f9fa;
-  padding: 2px 6px;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
+  color: var(--color-text-muted);
+  background: var(--color-gray-100);
+  padding: var(--spacing-xs) var(--spacing-xs);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
 }
 
 .task-status {
   font-size: 12px;
-  padding: 3px 8px;
+  padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: 12px;
   font-weight: 500;
 }
 
-.task-status.pending {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.task-status.processing {
-  background: #cce7ff;
-  color: #004085;
-}
-
-.task-status.completed {
-  background: #d4edda;
-  color: #155724;
-}
-
-.task-status.failed {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.level-excellent {
-  background: #28a745 !important;
-  color: white !important;
-}
-
-.level-good {
-  background: #17a2b8 !important;
-  color: white !important;
-}
-
-.level-average {
-  background: #ffc107 !important;
-  color: #212529 !important;
-}
-
 .task-sentence {
-  margin-bottom: 8px;
-  color: #555;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-gray-700);
   line-height: 1.4;
 }
 
 .task-scenario {
   font-size: 12px;
-  color: #6c757d;
-  margin-bottom: 8px;
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-sm);
+}
+
+.task-incomplete {
+  margin-top: var(--spacing-sm);
+}
+
+.incomplete-label {
+  font-size: 12px;
+  color: #856404;
+  background: #fff3cd;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: 12px;
+  font-weight: 500;
 }
 
 .task-error {
-  color: #dc3545;
+  color: var(--color-danger);
   font-size: 14px;
-  margin-top: 8px;
+  margin-top: var(--spacing-sm);
 }
 
 .task-result {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #e9ecef;
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
 }
 
 .result-reason {
-  margin-bottom: 8px;
-  color: #333;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text-primary);
 }
 
 .markdown-content {
-  margin-top: 5px;
+  margin-top: var(--spacing-xs);
 }
 
 .markdown-content p {
-  margin: 5px 0;
+  margin: var(--spacing-xs) 0;
 }
 
 .markdown-content ul,
 .markdown-content ol {
-  margin: 5px 0;
-  padding-left: 20px;
+  margin: var(--spacing-xs) 0;
+  padding-left: var(--spacing-xl);
 }
 
 .markdown-content li {
-  margin-bottom: 3px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .markdown-content strong {
@@ -357,99 +339,62 @@ function renderMarkdown(text: string): string {
 }
 
 .result-suggestions {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .result-suggestions ul {
-  margin: 5px 0;
-  padding-left: 20px;
+  margin: var(--spacing-xs) 0;
+  padding-left: var(--spacing-xl);
 }
 
 .result-suggestions li {
-  margin-bottom: 8px;
-  color: #555;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-gray-700);
 }
 
 .bilingual-suggestion {
-  padding-left: 4px;
-  margin: 4px 0;
+  padding-left: var(--spacing-xs);
+  margin: var(--spacing-xs) 0;
 }
 
 .english-suggestion {
   font-style: italic;
-  color: #333;
-  margin-bottom: 3px;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
 }
 
 .chinese-suggestion {
-  color: #666;
+  color: var(--color-text-secondary);
   font-size: 0.9em;
 }
 
 .result-explanation {
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .task-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 10px;
+  margin-top: var(--spacing-md);
 }
 
 .action-buttons {
   display: flex;
-  gap: 6px;
-}
-
-.btn-action {
-  padding: 4px 8px;
-  font-size: 11px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.btn-recreate {
-  background: #17a2b8;
-  color: white;
-}
-
-.btn-recreate:hover {
-  background: #138496;
-}
-
-.btn-retry {
-  background: #ffc107;
-  color: #212529;
-}
-
-.btn-retry:hover {
-  background: #e0a800;
-}
-
-.btn-delete {
-  background: #dc3545;
-  color: white;
-}
-
-.btn-delete:hover {
-  background: #c82333;
+  gap: var(--spacing-md);
 }
 
 .task-time {
   font-size: 12px;
-  color: #6c757d;
+  color: var(--color-text-muted);
 }
 
 /* 响应式设计 */
-@media (max-width: 768px) {
+@media (max-width: var(--breakpoint-md)) {
   .task-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--spacing-sm);
   }
 
   .task-status-container {
@@ -459,13 +404,13 @@ function renderMarkdown(text: string): string {
   .task-actions {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--spacing-sm);
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .task-item {
-    padding: 12px;
+    padding: var(--spacing-md);
   }
 
   .task-keyword {
@@ -477,7 +422,7 @@ function renderMarkdown(text: string): string {
   }
 
   .result-suggestions ul {
-    padding-left: 15px;
+    padding-left: var(--spacing-2xl);
   }
 }
 </style>

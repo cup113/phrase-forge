@@ -5,7 +5,7 @@ export interface ApiResponse {
   reason: string
   suggestions: string[]
   explanation: string
-  usage?: ApiUsage
+  usage: ApiUsage[]
 }
 
 export async function evaluateSentence(
@@ -55,14 +55,17 @@ export async function evaluateSentence(
   }
 
   // 解析 usage 信息
-  const usage = data.usage?.models?.[0]
-  const apiUsage: ApiUsage | undefined = usage
-    ? {
-        inputTokens: usage.input_tokens,
-        outputTokens: usage.output_tokens,
-        modelId: usage.model_id,
-      }
-    : undefined
+  const usage = data.usage.models
+  let apiUsage: ApiUsage[] = []
+  if (!Array.isArray(usage)) {
+    apiUsage = []
+  } else {
+    apiUsage = usage.map((rawUsage) => ({
+      inputTokens: rawUsage.input_tokens,
+      outputTokens: rawUsage.output_tokens,
+      modelId: rawUsage.model_id,
+    }))
+  }
 
   return {
     level: result.level,

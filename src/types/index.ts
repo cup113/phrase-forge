@@ -1,8 +1,15 @@
+export interface ApiUsage {
+  inputTokens: number
+  outputTokens: number
+  modelId: string
+}
+
 export interface SentenceMakingEvaluation {
   level: string
   reason: string
   suggestions?: string[]
   explanation?: string
+  usage?: ApiUsage[]
 }
 
 export interface TranslationComprisonOptionEvaluation {
@@ -17,16 +24,9 @@ export interface TranslationComparisonEvaluation {
   options: TranslationComprisonOptionEvaluation[]
 }
 
-export interface ApiUsage {
-  inputTokens: number
-  outputTokens: number
-  modelId: string
-}
-
 export interface TaskBasics {
   id: string
   status: 'incomplete' | 'pending' | 'processing' | 'completed' | 'failed'
-  usage?: ApiUsage
   error?: string
   createdAt: number
   startedAt?: number
