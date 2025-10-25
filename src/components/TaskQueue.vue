@@ -58,9 +58,7 @@ function handleRetry(taskId: string) {
 }
 
 function handleDelete(taskId: string) {
-  if (confirm('确定要删除这个任务吗？')) {
-    taskQueueStore.removeTask(taskId)
-  }
+  taskQueueStore.removeTask(taskId)
 }
 </script>
 

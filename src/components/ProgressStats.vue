@@ -43,24 +43,13 @@
       <div class="distribution-chart">
         <div
           v-for="level in levelDistribution"
-          :key="level.level"
           class="level-bar"
+          :key="level.level"
           :style="{ width: level.percentage + '%' }"
-          :class="getLevelClass(level.level)"
+          :class="[getLevelClass(level.level), level.count === 0 ? 'hidden' : 'non-hidden']"
         >
           <span class="level-label">{{ level.level }}</span>
           <span class="level-count">{{ level.count }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 热门词汇 -->
-    <div class="popular-keywords">
-      <h4>热门词汇</h4>
-      <div class="keywords-list">
-        <div v-for="keyword in topKeywords" :key="keyword.keyword" class="keyword-item">
-          <span class="keyword-text">{{ keyword.keyword }}</span>
-          <span class="keyword-count">{{ keyword.count }}次</span>
         </div>
       </div>
     </div>
@@ -142,21 +131,6 @@ const levelDistribution = computed(() => {
   })
 
   return distribution
-})
-
-// 热门词汇
-const topKeywords = computed(() => {
-  const keywordCounts: Record<string, number> = {}
-
-  history.value.forEach((record: HistoryRecord) => {
-    const keyword = record.keyword
-    keywordCounts[keyword] = (keywordCounts[keyword] || 0) + 1
-  })
-
-  return Object.entries(keywordCounts)
-    .map(([keyword, count]) => ({ keyword, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 8)
 })
 
 // 学习趋势（最近7天）
@@ -289,13 +263,18 @@ function getLevelClass(level: string): string {
   align-items: center;
   justify-content: center;
   position: relative;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease;
+  transform: scale(1);
   min-width: 40px;
 }
 
 .level-bar:hover {
   transform: scale(1.05);
   z-index: 1;
+}
+
+.level-bar.hidden {
+  display: none;
 }
 
 .level-excellent {
@@ -325,44 +304,6 @@ function getLevelClass(level: string): string {
   font-weight: 500;
 }
 
-/* 热门词汇 */
-.popular-keywords {
-  margin-bottom: 30px;
-}
-
-.keywords-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
-}
-
-.keyword-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: all 0.2s ease;
-}
-
-.keyword-item:hover {
-  border-color: #667eea;
-  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.2);
-}
-
-.keyword-text {
-  font-weight: 500;
-  color: #333;
-}
-
-.keyword-count {
-  color: #6c757d;
-  font-size: 12px;
-}
-
 /* 学习趋势 */
 .learning-trend {
   margin-bottom: 0;
@@ -372,7 +313,7 @@ function getLevelClass(level: string): string {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  height: 120px;
+  height: 240px;
   padding: 10px 0;
 }
 

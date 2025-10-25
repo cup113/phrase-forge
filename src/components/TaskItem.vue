@@ -22,10 +22,8 @@
 
     <div v-if="task.scenario" class="task-scenario">场景: {{ task.scenario }}</div>
 
-    <!-- 错误信息 -->
     <div v-if="task.error" class="task-error">{{ task.error }}</div>
 
-    <!-- 结果展示 -->
     <div v-if="task.result" class="task-result">
       <div class="result-reason">
         <strong>评分理由:</strong>
@@ -66,7 +64,7 @@
         <!-- 默认操作区域 -->
         <div class="action-buttons">
           <button
-            v-if="task.status === 'completed'"
+            v-if="canRetry"
             class="btn-action btn-recreate"
             @click="emit('recreate', task.id)"
           >
@@ -116,20 +114,27 @@ const now = useNow({
   interval: 1000,
 })
 
-const processingTime = computed(() => {
+const processingSeconds = computed(() => {
   if (!props.task.startedAt) {
     return undefined
   }
   const diff = now.value.getTime() - props.task.startedAt
   const seconds = Math.floor(diff / 1000)
 
-  if (seconds < 60) {
-    return `${seconds}秒`
-  } else {
-    const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = seconds % 60
-    return `${minutes}分${remainingSeconds}秒`
+  return seconds
+})
+
+const processingTime = computed(() => {
+  if (processingSeconds.value === undefined) {
+    return undefined
   }
+  return `${processingSeconds.value.toString().padStart(3, '0')}/120`
+})
+
+const canRetry = computed(() => {
+  const isTimeout = props.task.status === 'processing' && (processingSeconds.value ?? 0) >= 100
+  const isFailed = props.task.status === 'failed'
+  return isTimeout || isFailed
 })
 
 function getStatusText(status: Task['status'], level?: string): string {
@@ -166,18 +171,18 @@ function formatTime(timestamp?: number): string {
   const now = new Date()
   const diff = now.getTime() - timestamp
 
-  // 如果是今天
-  if (date.toDateString() === now.toDateString()) {
+  const isToday = date.toDateString() === now.toDateString()
+  if (isToday) {
     return date.toLocaleTimeString('zh-CN', {
       hour: '2-digit',
       minute: '2-digit',
     })
   }
 
-  // 如果是昨天
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
-  if (date.toDateString() === yesterday.toDateString()) {
+  const isYesterday = date.toDateString() === yesterday.toDateString()
+  if (isYesterday) {
     return (
       '昨天 ' +
       date.toLocaleTimeString('zh-CN', {
@@ -187,13 +192,12 @@ function formatTime(timestamp?: number): string {
     )
   }
 
-  // 一周内
-  if (diff < 7 * 24 * 60 * 60 * 1000) {
+  const isWithinOneWeek = diff < 7 * 24 * 60 * 60 * 1000
+  if (isWithinOneWeek) {
     const days = Math.floor(diff / (24 * 60 * 60 * 1000))
     return `${days}天前`
   }
 
-  // 更早的时间
   return date.toLocaleDateString('zh-CN')
 }
 
