@@ -133,10 +133,29 @@ const recentActivity = computed(() => {
   return history.value.filter((record: HistoryRecord) => record.createdAt > oneWeekAgo).length
 })
 
+function get_usage(record: HistoryRecord) {
+  const usage = record.result?.usage
+  if (usage === undefined) {
+    return {
+      input: 0,
+      output: 0,
+    }
+  } else if (Array.isArray(usage)) {
+    return {
+      input: usage.reduce((acc, rec) => acc + rec.inputTokens, 0),
+      output: usage.reduce((acc, rec) => acc + rec.outputTokens, 0),
+    }
+  } else {
+    return {
+      input: usage.inputTokens,
+      output: usage.outputTokens,
+    }
+  }
+}
+
 const totalTokensRaw = computed(() => {
   return history.value.reduce((sum: number, record: HistoryRecord) => {
-    const input = record.result?.usage?.reduce((acc, rec) => acc + rec.inputTokens, 0) || 0
-    const output = record.result?.usage?.reduce((acc, rec) => acc + rec.outputTokens, 0) || 0
+    const { input, output } = get_usage(record)
     return sum + input + output
   }, 0)
 })

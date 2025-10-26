@@ -9,7 +9,7 @@ export interface SentenceMakingEvaluation {
   reason: string
   suggestions?: string[]
   explanation?: string
-  usage?: ApiUsage[]
+  usage?: ApiUsage[] | ApiUsage // backward compatibility
 }
 
 export interface TranslationComprisonOptionEvaluation {
