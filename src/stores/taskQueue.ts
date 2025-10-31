@@ -2,8 +2,14 @@ import { defineStore } from 'pinia'
 import { computed } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import { useHistoryStore } from './history'
-import type { Task } from '../types'
-import { evaluateSentence } from '@/services/apiService'
+import {
+  type Task,
+  type TaskResult,
+  type SentenceMakingTaskCore,
+  type TranslationComparisonTaskCore,
+  isSentenceMakingTask,
+} from '../types'
+import { evaluateSentence, evaluateTranslation } from '@/services/apiService'
 import { useApiConfigStore } from './apiConfig'
 
 export const useTaskQueueStore = defineStore('taskQueue', () => {
@@ -26,13 +32,10 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
 
   const hasIncompleteTasks = computed(() => incompleteTasks.value.length > 0)
 
-  function addTask(keyword: string, sentence: string, scenario: string) {
+  function addTask(taskData: SentenceMakingTaskCore | TranslationComparisonTaskCore) {
     const task: Task = {
-      type: 'sentence-making',
+      ...taskData,
       id: generateTaskId(),
-      keyword,
-      sentence,
-      scenario,
       status: 'pending',
       createdAt: Date.now(),
     }
@@ -43,7 +46,7 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     return task.id
   }
 
-  // 批量添加未完成任务
+  // 批量添加未完成造句任务
   function addIncompleteTasks(keywords: string[]) {
     const newTasks: Task[] = keywords
       .filter((keyword) => keyword.trim())
@@ -63,8 +66,10 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
 
   // 获取下一个未完成任务
   function getNextIncompleteTask() {
-    const incompleteTask = tasks.value.find((task) => task.status === 'incomplete')
-    if (incompleteTask) {
+    const incompleteTask = tasks.value.find(
+      (task) => task.status === 'incomplete' && task.type === 'sentence-making',
+    )
+    if (incompleteTask && isSentenceMakingTask(incompleteTask)) {
       inputTaskForm.value.keyword = incompleteTask.keyword
       inputTaskForm.value.sentence = ''
       inputTaskForm.value.scenario = ''
@@ -76,7 +81,7 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
   // 完成未完成任务（转换为待处理状态）
   function completeIncompleteTask(taskId: string, sentence: string, scenario: string) {
     const task = tasks.value.find((t) => t.id === taskId)
-    if (task && task.status === 'incomplete') {
+    if (task && task.status === 'incomplete' && task.type === 'sentence-making') {
       task.sentence = sentence
       task.scenario = scenario
       task.status = 'pending'
@@ -89,7 +94,7 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
   // 重新造句 - 基于现有任务创建新任务
   function recreateTask(taskId: string) {
     const task = tasks.value.find((t) => t.id === taskId)
-    if (task) {
+    if (task && task.type === 'sentence-making') {
       inputTaskForm.value.keyword = task.keyword
       inputTaskForm.value.scenario = task.scenario
     }
@@ -112,20 +117,26 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
       task.startedAt = Date.now()
       const apiConfigStore = useApiConfigStore()
       try {
-        const response = await evaluateSentence(
-          task.keyword,
-          task.sentence,
-          task.scenario,
-          apiConfigStore.apiConfig,
-        )
-        completeTask(taskId, response)
+        if (task.type === 'sentence-making') {
+          const response = await evaluateSentence(task.keyword, task.sentence, task.scenario, {
+            ...apiConfigStore.apiConfig,
+            endpoint: apiConfigStore.getEndpointForTaskType('sentence-making'),
+          })
+          completeTask(taskId, response)
+        } else if (task.type === 'translation-comparison') {
+          const response = await evaluateTranslation(task.original, task.translations, {
+            ...apiConfigStore.apiConfig,
+            endpoint: apiConfigStore.getEndpointForTaskType('translation-comparison'),
+          })
+          completeTask(taskId, response)
+        }
       } catch (error) {
         failTask(taskId, error instanceof Error ? error.message : 'Unknown error')
       }
     }
   }
 
-  function completeTask(taskId: string, result: Task['result']) {
+  function completeTask(taskId: string, result: TaskResult) {
     const task = tasks.value.find((t) => t.id === taskId)
     if (task) {
       const historyStore = useHistoryStore()

@@ -93,10 +93,10 @@ import { marked } from 'marked'
 import { useNow } from '@vueuse/core'
 import { computed } from 'vue'
 import LoadingSpinner from './LoadingSpinner.vue'
-import type { Task } from '@/types'
+import type { SentenceMakingTaskCore, TaskBasics } from '@/types'
 
 interface Props {
-  task: Task
+  task: SentenceMakingTaskCore & TaskBasics
 }
 
 interface Emit {
@@ -135,7 +135,7 @@ const canRetry = computed(() => {
   return isTimeout || isFailed
 })
 
-function getStatusText(status: Task['status'], level?: string): string {
+function getStatusText(status: TaskBasics['status'], level?: string): string {
   switch (status) {
     case 'incomplete':
       return '未开始'

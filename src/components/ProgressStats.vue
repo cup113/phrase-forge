@@ -87,17 +87,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useHistoryStore } from '@/stores/history'
-import type { HistoryRecord } from '@/types'
+import { isSentenceMakingTask } from '@/types'
+import type { Task } from '@/types'
 
 const historyStore = useHistoryStore()
 
-const history = computed(() => historyStore.history)
+const history = computed(() => historyStore.history.filter(isSentenceMakingTask))
 
 // 基础统计
 const totalRecords = computed(() => history.value.length)
 
 const uniqueKeywords = computed(() => {
-  const keywords = new Set(history.value.map((record: HistoryRecord) => record.keyword))
+  const keywords = new Set(history.value.map((record) => record.keyword))
   return keywords.size
 })
 
@@ -113,7 +114,7 @@ const averageLevel = computed(() => {
     C: 1,
   }
 
-  const totalScore = history.value.reduce((sum: number, record: HistoryRecord) => {
+  const totalScore = history.value.reduce((sum, record) => {
     return sum + (levelScores[record.result?.level || ''] || 0)
   }, 0)
 
@@ -130,10 +131,10 @@ const averageLevel = computed(() => {
 
 const recentActivity = computed(() => {
   const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
-  return history.value.filter((record: HistoryRecord) => record.createdAt > oneWeekAgo).length
+  return history.value.filter((record) => record.createdAt > oneWeekAgo).length
 })
 
-function get_usage(record: HistoryRecord) {
+function get_usage(record: Task) {
   const usage = record.result?.usage
   if (usage === undefined) {
     return {
@@ -154,7 +155,7 @@ function get_usage(record: HistoryRecord) {
 }
 
 const totalTokensRaw = computed(() => {
-  return history.value.reduce((sum: number, record: HistoryRecord) => {
+  return history.value.reduce((sum, record) => {
     const { input, output } = get_usage(record)
     return sum + input + output
   }, 0)
@@ -185,9 +186,7 @@ const levelDistribution = computed(() => {
   const distribution: { level: string; count: number; percentage: number }[] = []
 
   levels.forEach((level) => {
-    const count = history.value.filter(
-      (record: HistoryRecord) => record.result?.level === level,
-    ).length
+    const count = history.value.filter((record) => record.result?.level === level).length
     const percentage = totalRecords.value > 0 ? (count / totalRecords.value) * 100 : 0
     distribution.push({ level, count, percentage })
   })
@@ -208,7 +207,7 @@ const weeklyTrend = computed(() => {
     const dayEnd = new Date(date).setHours(23, 59, 59, 999)
 
     const count = history.value.filter(
-      (record: HistoryRecord) => record.createdAt >= dayStart && record.createdAt <= dayEnd,
+      (record) => record.createdAt >= dayStart && record.createdAt <= dayEnd,
     ).length
 
     const maxCount = Math.max(...(weeklyTrend.value?.map((d) => d.count) || [1]), 1)

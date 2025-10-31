@@ -71,6 +71,7 @@ import { ref, computed } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import TaskItem from '@/components/TaskItem.vue'
 import { useHistoryStore } from '@/stores/history'
+import { isSentenceMakingTask } from '@/types'
 import ProgressStats from '@/components/ProgressStats.vue'
 
 const historyStore = useHistoryStore()
@@ -78,7 +79,7 @@ const historyStore = useHistoryStore()
 const searchKeyword = ref('')
 const filterLevel = ref('')
 
-const history = computed(() => historyStore.recentHistory)
+const history = computed(() => historyStore.recentHistory.filter(isSentenceMakingTask))
 
 const filteredHistory = computed(() => {
   let filtered = history.value

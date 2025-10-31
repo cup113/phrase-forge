@@ -28,20 +28,38 @@
       </div>
 
       <div class="form-group">
-        <label for="endpoint">
+        <label for="sentenceMakingEndpoint">
           <span class="label-icon">🌐</span>
-          API端点（不建议修改）
+          句子制作API端点（不建议修改）
         </label>
         <input
-          id="endpoint"
-          v-model="endpoint"
+          id="sentenceMakingEndpoint"
+          v-model="sentenceMakingEndpoint"
           type="url"
-          placeholder="请输入API 端点 URL"
+          placeholder="请输入句子制作API 端点 URL"
           required
         />
         <small class="help-text">
           <span class="help-icon">📝</span>
-          通义千问工作流端点，建议使用默认
+          通义千问句子制作工作流端点
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label for="translationComparisonEndpoint">
+          <span class="label-icon">🌐</span>
+          翻译对比API端点（不建议修改）
+        </label>
+        <input
+          id="translationComparisonEndpoint"
+          v-model="translationComparisonEndpoint"
+          type="url"
+          placeholder="请输入翻译对比API 端点 URL"
+          required
+        />
+        <small class="help-text">
+          <span class="help-icon">🔄</span>
+          通义千问翻译对比工作流端点
         </small>
       </div>
 
@@ -76,31 +94,35 @@ import { useApiConfigStore } from '@/stores/apiConfig'
 const apiConfigStore = useApiConfigStore()
 
 const apiKey = ref('')
-const endpoint = ref('')
+const sentenceMakingEndpoint = ref('')
+const translationComparisonEndpoint = ref('')
 
 const isConfigured = apiConfigStore.isConfigured
 
 onMounted(() => {
   apiKey.value = apiConfigStore.apiConfig.apiKey
-  endpoint.value = apiConfigStore.apiConfig.endpoint
+  sentenceMakingEndpoint.value = apiConfigStore.apiConfig.sentenceMakingEndpoint
+  translationComparisonEndpoint.value = apiConfigStore.apiConfig.translationComparisonEndpoint
 })
 
 function saveConfig() {
   apiConfigStore.setApiConfig({
     apiKey: apiKey.value,
-    endpoint: endpoint.value,
+    sentenceMakingEndpoint: sentenceMakingEndpoint.value,
+    translationComparisonEndpoint: translationComparisonEndpoint.value,
   })
 }
 
 function resetConfig() {
   apiKey.value = ''
-  endpoint.value = apiConfigStore.apiConfig.endpoint
+  sentenceMakingEndpoint.value = apiConfigStore.apiConfig.sentenceMakingEndpoint
+  translationComparisonEndpoint.value = apiConfigStore.apiConfig.translationComparisonEndpoint
 }
 </script>
 
 <style scoped>
 .api-config {
-  max-width: 500px;
+  max-width: 600px;
   margin: 0 auto;
 }
 

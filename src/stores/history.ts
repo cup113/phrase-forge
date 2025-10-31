@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { computed } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
-import type { Task, HistoryRecord } from '../types'
+import type { Task } from '../types'
+import { isSentenceMakingTask, isSentenceMakingEvaluation } from '../types'
 
 export const useHistoryStore = defineStore('history', () => {
-  const history = useLocalStorage<HistoryRecord[]>('phrase-forge-history', [])
+  const history = useLocalStorage<Task[]>('phrase-forge-history', [])
 
   const recentHistory = computed(() => {
     return history.value.slice(0, 50)
@@ -14,14 +15,16 @@ export const useHistoryStore = defineStore('history', () => {
     const stats: Record<string, { count: number; levels: Record<string, number> }> = {}
 
     history.value.forEach((record) => {
-      const keyword = record.keyword || 'unknown'
-      if (!stats[keyword]) {
-        stats[keyword] = { count: 0, levels: {} }
-      }
-      stats[keyword].count++
-      if (record.result?.level) {
-        const level = record.result.level
-        stats[keyword].levels[level] = (stats[keyword].levels[level] || 0) + 1
+      if (isSentenceMakingTask(record)) {
+        const keyword = record.keyword || 'unknown'
+        if (!stats[keyword]) {
+          stats[keyword] = { count: 0, levels: {} }
+        }
+        stats[keyword].count++
+        if (record.result && isSentenceMakingEvaluation(record.result)) {
+          const level = record.result.level
+          stats[keyword].levels[level] = (stats[keyword].levels[level] || 0) + 1
+        }
       }
     })
 
@@ -30,9 +33,8 @@ export const useHistoryStore = defineStore('history', () => {
 
   function addRecord(task: Task) {
     if (task.status === 'completed' && task.result) {
-      const record: HistoryRecord = {
+      const record = {
         ...task,
-        status: 'completed' as const,
         createdAt: task.completedAt || Date.now(),
       }
 

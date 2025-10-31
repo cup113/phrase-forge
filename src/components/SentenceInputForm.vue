@@ -130,6 +130,7 @@ import { ref, computed } from 'vue'
 import { useTaskQueueStore } from '@/stores/taskQueue'
 import { useApiConfigStore } from '@/stores/apiConfig'
 import { RouterLink } from 'vue-router'
+import type { SentenceMakingTaskCore } from '@/types'
 
 const taskQueueStore = useTaskQueueStore()
 const apiConfigStore = useApiConfigStore()
@@ -163,7 +164,7 @@ function submitSentence() {
 
   // 检查当前关键词是否对应一个 incomplete 任务
   const incompleteTask = taskQueueStore.incompleteTasks.find(
-    (task) => task.keyword === keyword.value.trim(),
+    (task) => task.type === 'sentence-making' && task.keyword === keyword.value.trim(),
   )
 
   if (incompleteTask) {
@@ -175,7 +176,13 @@ function submitSentence() {
     )
   } else {
     // 否则创建新任务
-    taskQueueStore.addTask(keyword.value.trim(), sentence.value.trim(), scenario.value.trim())
+    const taskData: SentenceMakingTaskCore = {
+      type: 'sentence-making',
+      keyword: keyword.value.trim(),
+      sentence: sentence.value.trim(),
+      scenario: scenario.value.trim(),
+    }
+    taskQueueStore.addTask(taskData)
   }
 
   showSuccess.value = true

@@ -5,10 +5,10 @@
       <button class="btn-secondary btn-small" @click="clearTasks">清空</button>
     </div>
 
-    <div v-if="tasks.length > 0" class="section">
+    <div v-if="tasksSentenceMaking.length > 0" class="section">
       <div class="task-list">
         <TaskItem
-          v-for="task in tasks"
+          v-for="task in tasksSentenceMaking"
           :key="task.id"
           :task="task"
           @recreate="handleRecreate"
@@ -18,7 +18,7 @@
       </div>
     </div>
 
-    <div v-if="tasks.length === 0" class="empty-state">
+    <div v-if="tasksSentenceMaking.length === 0" class="empty-state">
       <p>暂无任务，请先提交句子进行评估</p>
     </div>
   </div>
@@ -28,6 +28,7 @@
 import { computed, inject } from 'vue'
 import { useTaskQueueStore } from '@/stores/taskQueue'
 import TaskItem from './TaskItem.vue'
+import { isSentenceMakingTask } from '@/types'
 
 // 注入全局错误处理
 const showError =
@@ -35,14 +36,17 @@ const showError =
 
 const taskQueueStore = useTaskQueueStore()
 
-const tasks = computed(() => {
-  return taskQueueStore.tasks.slice().sort((a, b) => {
-    // incomplete 任务排在最后
-    if (a.status === 'incomplete' && b.status !== 'incomplete') return 1
-    if (a.status !== 'incomplete' && b.status === 'incomplete') return -1
-    // 其他任务按创建时间倒序排列
-    return b.createdAt - a.createdAt
-  })
+const tasksSentenceMaking = computed(() => {
+  return taskQueueStore.tasks
+    .filter(isSentenceMakingTask)
+    .slice()
+    .sort((a, b) => {
+      // incomplete 任务排在最后
+      if (a.status === 'incomplete' && b.status !== 'incomplete') return 1
+      if (a.status !== 'incomplete' && b.status === 'incomplete') return -1
+      // 其他任务按创建时间倒序排列
+      return b.createdAt - a.createdAt
+    })
 })
 
 function clearTasks() {

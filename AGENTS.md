@@ -24,7 +24,7 @@
 
 **重要提醒：本项目使用 pnpm 作为包管理器，请勿使用 npm！**
 
-- `pnpm dev` - 启动开发服务器
+- `pnpm dev` - 启动开发服务器（不要主动调用这行命令）
 - `pnpm build` - 构建项目（包含类型检查）
 - `pnpm build-only` - 仅构建项目（不进行类型检查）
 - `pnpm type-check` - 运行 TypeScript 类型检查

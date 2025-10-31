@@ -4,7 +4,32 @@
 
     <main class="main-content">
       <section class="input-section">
-        <InputForm />
+        <!-- Tab 切换 -->
+        <div class="tab-container">
+          <div class="tab-header">
+            <button
+              class="tab-button"
+              :class="{ active: activeTab === 'sentence-making' }"
+              @click="activeTab = 'sentence-making'"
+            >
+              <span class="tab-icon">✍️</span>
+              句子制作
+            </button>
+            <button
+              class="tab-button"
+              :class="{ active: activeTab === 'translation-comparison' }"
+              @click="activeTab = 'translation-comparison'"
+            >
+              <span class="tab-icon">🔄</span>
+              翻译对照
+            </button>
+          </div>
+
+          <div class="tab-content">
+            <SentenceInputForm v-if="activeTab === 'sentence-making'" />
+            <TranslationInputForm v-else />
+          </div>
+        </div>
       </section>
 
       <section class="queue-section">
@@ -19,9 +44,13 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
-import InputForm from '@/components/InputForm.vue'
+import SentenceInputForm from '@/components/SentenceInputForm.vue'
+import TranslationInputForm from '@/components/TranslationInputForm.vue'
 import TaskQueue from '@/components/TaskQueue.vue'
+
+const activeTab = ref<'sentence-making' | 'translation-comparison'>('sentence-making')
 </script>
 
 <style scoped>
@@ -49,6 +78,60 @@ import TaskQueue from '@/components/TaskQueue.vue'
   margin-bottom: 0;
 }
 
+/* Tab 样式 */
+.tab-container {
+  width: 100%;
+}
+
+.tab-header {
+  display: flex;
+  background: var(--color-surface);
+  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  overflow: hidden;
+}
+
+.tab-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.95rem;
+}
+
+.tab-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary);
+}
+
+.tab-button.active {
+  background: var(--color-primary);
+  color: white;
+  font-weight: 600;
+}
+
+.tab-icon {
+  font-size: 1.1rem;
+}
+
+.tab-content {
+  background: var(--color-surface);
+  backdrop-filter: blur(10px);
+  border-radius: 0 var(--border-radius-lg) var(--border-radius-lg) var(--border-radius-lg);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--box-shadow);
+  padding: var(--spacing-2xl);
+}
+
 .app-footer {
   background: rgba(0, 0, 0, 0.8);
   color: white;
@@ -70,12 +153,26 @@ import TaskQueue from '@/components/TaskQueue.vue'
     grid-template-columns: 1fr;
     gap: 20px;
   }
+
+  .tab-button {
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: 0.9rem;
+  }
 }
 
 @media (max-width: 480px) {
   .main-content {
     padding: 15px 10px;
     gap: 15px;
+  }
+
+  .tab-button {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.85rem;
+  }
+
+  .tab-icon {
+    font-size: 1rem;
   }
 }
 </style>
