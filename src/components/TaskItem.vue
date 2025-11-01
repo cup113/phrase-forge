@@ -789,6 +789,8 @@ function renderMarkdown(text: string): string {
   background: white;
   border-radius: var(--border-radius-sm);
   border-left: 3px solid var(--color-primary);
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 /* 概要评分结果样式 */

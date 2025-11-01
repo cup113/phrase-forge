@@ -171,11 +171,10 @@ export async function evaluateSummaryStandard(
     },
     body: JSON.stringify({
       input: {
-        prompt: '[任务]',
+        prompt: `# 原文\n\n${passage}`,
         biz_params: {
           type: 0,
         },
-        query: `# 原文\n\n${passage}`,
       },
       parameters: {},
       debug: {},
@@ -235,11 +234,10 @@ export async function evaluateSummary(
     },
     body: JSON.stringify({
       input: {
-        prompt: '[任务]',
+        prompt: `# 原文\n\n${passage}\n\n# 学生摘要\n\n${summary}\n\n# 评分标准\n\n${standard}`,
         biz_params: {
           type: 1,
         },
-        query: `# 原文\n\n${passage}\n\n# 学生摘要\n\n${summary}\n\n# 评分标准\n\n${standard}`,
       },
       parameters: {},
       debug: {},
