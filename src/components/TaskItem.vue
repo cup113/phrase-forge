@@ -50,6 +50,36 @@
       </div>
     </div>
 
+    <!-- 概要标准制定任务内容 -->
+    <div
+      v-if="isSummaryStandardTask(task) && task.status !== 'incomplete'"
+      class="task-summary-standard"
+    >
+      <div class="summary-card">
+        <div class="summary-header">
+          <span class="summary-label">原文</span>
+          <div class="summary-passage">{{ task.passage }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 概要评分任务内容 -->
+    <div
+      v-if="isSummaryEvaluationTask(task) && task.status !== 'incomplete'"
+      class="task-summary-evaluation"
+    >
+      <div class="summary-card">
+        <div class="summary-header">
+          <span class="summary-label">原文</span>
+          <div class="summary-passage">{{ task.passage }}</div>
+        </div>
+        <div class="summary-content">
+          <span class="summary-label">学生摘要</span>
+          <div class="summary-text">{{ task.summary }}</div>
+        </div>
+      </div>
+    </div>
+
     <div v-if="task.status === 'incomplete'" class="task-incomplete">
       <span class="incomplete-label">待完成</span>
     </div>
@@ -113,6 +143,57 @@
       </div>
     </div>
 
+    <!-- 概要标准制定任务结果 -->
+    <div v-if="isSummaryStandardTask(task) && task.result" class="task-result">
+      <div class="result-standard">
+        <strong>评分标准:</strong>
+        <div v-html="renderMarkdown(task.result.standard)" class="markdown-content"></div>
+      </div>
+    </div>
+
+    <!-- 概要评分任务结果 -->
+    <div v-if="isSummaryEvaluationTask(task) && task.result" class="task-result">
+      <div class="result-summary-evaluation">
+        <div class="score-summary">
+          <strong>总分: {{ task.result.total }}/{{ task.result.full }}</strong>
+          <div class="score-breakdown">
+            <div class="score-item">
+              <span class="score-label">内容分:</span>
+              <span class="score-value">{{
+                task.result.contentBasic + task.result.contentAddition
+              }}</span>
+            </div>
+            <div class="score-item">
+              <span class="score-label">语言分:</span>
+              <span class="score-value">{{ task.result.languageBonus }}</span>
+            </div>
+            <div class="score-item">
+              <span class="score-label">字数扣分:</span>
+              <span class="score-value">{{ task.result.wordLimitPenalty }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="task.result.contentReasons.length > 0" class="content-reasons">
+          <strong>内容评分理由:</strong>
+          <ul>
+            <li v-for="(reason, index) in task.result.contentReasons" :key="index">
+              {{ reason }}
+            </li>
+          </ul>
+        </div>
+
+        <div v-if="task.result.languageReasons.length > 0" class="language-reasons">
+          <strong>语言评分理由:</strong>
+          <ul>
+            <li v-for="(reason, index) in task.result.languageReasons" :key="index">
+              {{ reason }}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <!-- 操作区域 -->
     <div class="task-actions">
       <slot name="actions">
@@ -124,6 +205,22 @@
             @click="emit('recreate', task.id)"
           >
             重新造句
+          </button>
+
+          <button
+            v-if="task.type === 'summary-standard'"
+            class="btn-action btn-evaluate"
+            @click="emit('navigateToEvaluation', task.id)"
+          >
+            前往评分
+          </button>
+
+          <button
+            v-if="task.type === 'summary-evaluation'"
+            class="btn-action btn-rewrite"
+            @click="emit('rewriteSummary', task.id)"
+          >
+            重写
           </button>
 
           <button v-if="canRetry" class="btn-action btn-retry" @click="emit('retry', task.id)">
@@ -147,7 +244,12 @@ import { useNow } from '@vueuse/core'
 import { computed } from 'vue'
 import LoadingSpinner from './LoadingSpinner.vue'
 import type { Task, TaskBasics } from '@/types'
-import { isSentenceMakingTask, isTranslationComparisonTask } from '@/types'
+import {
+  isSentenceMakingTask,
+  isTranslationComparisonTask,
+  isSummaryStandardTask,
+  isSummaryEvaluationTask,
+} from '@/types'
 
 interface Props {
   task: Task
@@ -157,6 +259,8 @@ interface Emit {
   (event: 'recreate', id: string): void
   (event: 'retry', id: string): void
   (event: 'delete', id: string): void
+  (event: 'navigateToEvaluation', id: string): void
+  (event: 'rewriteSummary', id: string): void
 }
 
 const props = defineProps<Props>()
@@ -262,12 +366,21 @@ function getTaskTitle(task: Task): string {
   if (isTranslationComparisonTask(task)) {
     return '翻译对照'
   }
+  if (isSummaryStandardTask(task)) {
+    return '概要标准制定'
+  }
+  if (isSummaryEvaluationTask(task)) {
+    return '概要评分'
+  }
   return '未知任务'
 }
 
 function getTaskLevel(task: Task): string | undefined {
   if (isSentenceMakingTask(task) && task.result) {
     return task.result.level
+  }
+  if (isSummaryEvaluationTask(task) && task.result) {
+    return `${task.result.total}/${task.result.full}`
   }
   return undefined
 }
@@ -633,6 +746,109 @@ function renderMarkdown(text: string): string {
   margin-right: var(--spacing-xs);
 }
 
+/* 概要任务样式 */
+.task-summary-standard,
+.task-summary-evaluation {
+  margin-bottom: var(--spacing-sm);
+}
+
+.summary-card {
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-md);
+  transition: var(--transition);
+}
+
+.summary-card:hover {
+  box-shadow: var(--box-shadow-sm);
+  transform: translateY(-1px);
+}
+
+.summary-header,
+.summary-content {
+  margin-bottom: var(--spacing-md);
+}
+
+.summary-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-xs);
+  display: block;
+}
+
+.summary-passage,
+.summary-text {
+  font-size: 14px;
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  padding: var(--spacing-sm);
+  background: white;
+  border-radius: var(--border-radius-sm);
+  border-left: 3px solid var(--color-primary);
+}
+
+/* 概要评分结果样式 */
+.result-standard {
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text-primary);
+}
+
+.result-summary-evaluation {
+  margin-bottom: var(--spacing-sm);
+}
+
+.score-summary {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-gray-50);
+  border-radius: var(--border-radius-sm);
+  border-left: 4px solid var(--color-primary);
+}
+
+.score-breakdown {
+  display: flex;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.score-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.score-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.score-value {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.content-reasons,
+.language-reasons {
+  margin-bottom: var(--spacing-sm);
+}
+
+.content-reasons ul,
+.language-reasons ul {
+  margin: var(--spacing-xs) 0;
+  padding-left: var(--spacing-xl);
+}
+
+.content-reasons li,
+.language-reasons li {
+  margin-bottom: var(--spacing-xs);
+  color: var(--color-gray-700);
+}
+
 .task-actions {
   display: flex;
   justify-content: space-between;
@@ -667,6 +883,28 @@ function renderMarkdown(text: string): string {
   background: #138496;
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(23, 162, 184, 0.3);
+}
+
+.btn-evaluate {
+  background: var(--color-success);
+  color: white;
+}
+
+.btn-evaluate:hover {
+  background: #1e7e34;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+}
+
+.btn-rewrite {
+  background: var(--color-warning);
+  color: var(--color-gray-900);
+}
+
+.btn-rewrite:hover {
+  background: #e0a800;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(255, 193, 7, 0.3);
 }
 
 .btn-retry {

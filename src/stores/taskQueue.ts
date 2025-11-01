@@ -7,9 +7,16 @@ import {
   type TaskResult,
   type SentenceMakingTaskCore,
   type TranslationComparisonTaskCore,
+  type SummaryStandardForgingTaskCore,
+  type SummaryEvaluationTaskCore,
   isSentenceMakingTask,
 } from '../types'
-import { evaluateSentence, evaluateTranslation } from '@/services/apiService'
+import {
+  evaluateSentence,
+  evaluateTranslation,
+  evaluateSummaryStandard,
+  evaluateSummary,
+} from '@/services/apiService'
 import { useApiConfigStore } from './apiConfig'
 
 export const useTaskQueueStore = defineStore('taskQueue', () => {
@@ -24,6 +31,12 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     translationInput: '',
   })
 
+  const summaryInputForm = useLocalStorage('phrase-forge-summary-input-task-form', {
+    passage: '',
+    summary: '',
+    standard: '',
+  })
+
   const completedTasks = computed(() => {
     return tasks.value
       .filter((task) => task.status === 'completed')
@@ -36,7 +49,13 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
 
   const hasIncompleteTasks = computed(() => incompleteTasks.value.length > 0)
 
-  function addTask(taskData: SentenceMakingTaskCore | TranslationComparisonTaskCore) {
+  function addTask(
+    taskData:
+      | SentenceMakingTaskCore
+      | TranslationComparisonTaskCore
+      | SummaryStandardForgingTaskCore
+      | SummaryEvaluationTaskCore,
+  ) {
     const task: Task = {
       ...taskData,
       id: generateTaskId(),
@@ -104,6 +123,24 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     }
   }
 
+  // 前往评分 - 基于标准制定任务创建评分任务
+  function navigateToEvaluation(taskId: string) {
+    const task = tasks.value.find((t) => t.id === taskId)
+    if (task && task.type === 'summary-standard' && task.result) {
+      summaryInputForm.value.passage = task.passage
+      summaryInputForm.value.standard = task.result.standard
+      summaryInputForm.value.summary = ''
+    }
+  }
+
+  // 重写摘要 - 清空摘要字段
+  function rewriteSummary(taskId: string) {
+    const task = tasks.value.find((t) => t.id === taskId)
+    if (task && task.type === 'summary-evaluation') {
+      summaryInputForm.value.summary = ''
+    }
+  }
+
   function retryTask(taskId: string) {
     const task = tasks.value.find((t) => t.id === taskId)
     if (task) {
@@ -131,6 +168,18 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
           const response = await evaluateTranslation(task.original, task.translations, {
             ...apiConfigStore.apiConfig,
             endpoint: apiConfigStore.getEndpointForTaskType('translation-comparison'),
+          })
+          completeTask(taskId, response)
+        } else if (task.type === 'summary-standard') {
+          const response = await evaluateSummaryStandard(task.passage, {
+            ...apiConfigStore.apiConfig,
+            endpoint: apiConfigStore.getEndpointForTaskType('summary-standard'),
+          })
+          completeTask(taskId, response)
+        } else if (task.type === 'summary-evaluation') {
+          const response = await evaluateSummary(task.passage || '', task.summary, task.standard, {
+            ...apiConfigStore.apiConfig,
+            endpoint: apiConfigStore.getEndpointForTaskType('summary-evaluation'),
           })
           completeTask(taskId, response)
         }
@@ -178,6 +227,7 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     tasks,
     inputTaskForm,
     translationInputForm,
+    summaryInputForm,
     completedTasks,
     incompleteTasks,
     hasIncompleteTasks,
@@ -192,5 +242,7 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     clearAllTasks,
     recreateTask,
     retryTask,
+    navigateToEvaluation,
+    rewriteSummary,
   }
 })

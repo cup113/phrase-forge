@@ -14,6 +14,8 @@
           @recreate="handleRecreate"
           @retry="handleRetry"
           @delete="handleDelete"
+          @navigateToEvaluation="handleNavigateToEvaluation"
+          @rewriteSummary="handleRewriteSummary"
         />
       </div>
     </div>
@@ -67,6 +69,14 @@ function handleRetry(taskId: string) {
 
 function handleDelete(taskId: string) {
   taskQueueStore.removeTask(taskId)
+}
+
+function handleNavigateToEvaluation(taskId: string) {
+  taskQueueStore.navigateToEvaluation(taskId)
+}
+
+function handleRewriteSummary(taskId: string) {
+  taskQueueStore.rewriteSummary(taskId)
 }
 </script>
 

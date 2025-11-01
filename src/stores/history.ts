@@ -2,7 +2,12 @@ import { defineStore } from 'pinia'
 import { computed } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import type { Task } from '../types'
-import { isSentenceMakingTask, isTranslationComparisonTask } from '../types'
+import {
+  isSentenceMakingTask,
+  isTranslationComparisonTask,
+  isSummaryStandardTask,
+  isSummaryEvaluationTask,
+} from '../types'
 
 export const useHistoryStore = defineStore('history', () => {
   const history = useLocalStorage<Task[]>('phrase-forge-history', [])
@@ -15,6 +20,8 @@ export const useHistoryStore = defineStore('history', () => {
     const stats = {
       sentenceMaking: 0,
       translationComparison: 0,
+      summaryStandard: 0,
+      summaryEvaluation: 0,
     }
 
     history.value.forEach((record) => {
@@ -22,6 +29,10 @@ export const useHistoryStore = defineStore('history', () => {
         stats.sentenceMaking++
       } else if (isTranslationComparisonTask(record)) {
         stats.translationComparison++
+      } else if (isSummaryStandardTask(record)) {
+        stats.summaryStandard++
+      } else if (isSummaryEvaluationTask(record)) {
+        stats.summaryEvaluation++
       }
     })
 

@@ -23,11 +23,20 @@
               <span class="tab-icon">🔄</span>
               翻译对照
             </button>
+            <button
+              class="tab-button"
+              :class="{ active: activeTab === 'summary-writing' }"
+              @click="activeTab = 'summary-writing'"
+            >
+              <span class="tab-icon">📋</span>
+              概要写作
+            </button>
           </div>
 
           <div class="tab-content">
             <SentenceInputForm v-if="activeTab === 'sentence-making'" />
-            <TranslationInputForm v-else />
+            <TranslationInputForm v-else-if="activeTab === 'translation-comparison'" />
+            <SummaryInputForm v-else />
           </div>
         </div>
       </section>
@@ -48,9 +57,12 @@ import { ref } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import SentenceInputForm from '@/components/SentenceInputForm.vue'
 import TranslationInputForm from '@/components/TranslationInputForm.vue'
+import SummaryInputForm from '@/components/SummaryInputForm.vue'
 import TaskQueue from '@/components/TaskQueue.vue'
 
-const activeTab = ref<'sentence-making' | 'translation-comparison'>('sentence-making')
+const activeTab = ref<'sentence-making' | 'translation-comparison' | 'summary-writing'>(
+  'sentence-making',
+)
 </script>
 
 <style scoped>
