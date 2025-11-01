@@ -1,4 +1,9 @@
-import type { ApiUsage, TranslationComparisonEvaluation } from '@/types'
+import type {
+  ApiUsage,
+  TranslationComparisonEvaluation,
+  SummaryGradingStandard,
+  SummaryEvaluation,
+} from '@/types'
 
 export interface ApiResponse {
   level: string
@@ -146,6 +151,141 @@ export async function evaluateTranslation(
 
   return {
     options: result.options,
+    usage: apiUsage,
+  }
+}
+
+export async function evaluateSummaryStandard(
+  passage: string,
+  apiConfig: { apiKey: string; endpoint: string },
+): Promise<SummaryGradingStandard> {
+  if (!apiConfig.apiKey.trim()) {
+    throw new Error('API配置未完成，请先配置API Key')
+  }
+
+  const response = await fetch(apiConfig.endpoint, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiConfig.apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      input: {
+        prompt: '[任务]',
+        biz_params: {
+          type: 0,
+        },
+        query: `# 原文\n\n${passage}`,
+      },
+      parameters: {},
+      debug: {},
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`API请求失败: ${response.status} ${response.statusText}`)
+  }
+
+  const data = await response.json()
+  const text = data.output?.text
+
+  if (!text) {
+    throw new Error('API响应格式错误 I')
+  }
+
+  const result = JSON.parse(text)
+  if (!result.standard) {
+    throw new Error('API响应格式错误 II')
+  }
+
+  // 解析 usage 信息
+  const usage = data.usage.models
+  let apiUsage: ApiUsage[] = []
+  if (!Array.isArray(usage)) {
+    apiUsage = []
+  } else {
+    apiUsage = usage.map((rawUsage) => ({
+      inputTokens: rawUsage.input_tokens,
+      outputTokens: rawUsage.output_tokens,
+      modelId: rawUsage.model_id,
+    }))
+  }
+
+  return {
+    standard: result.standard,
+    usage: apiUsage,
+  }
+}
+
+export async function evaluateSummary(
+  passage: string,
+  summary: string,
+  standard: string,
+  apiConfig: { apiKey: string; endpoint: string },
+): Promise<SummaryEvaluation> {
+  if (!apiConfig.apiKey.trim()) {
+    throw new Error('API配置未完成，请先配置API Key')
+  }
+
+  const response = await fetch(apiConfig.endpoint, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiConfig.apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      input: {
+        prompt: '[任务]',
+        biz_params: {
+          type: 1,
+        },
+        query: `# 原文\n\n${passage}\n\n# 学生摘要\n\n${summary}\n\n# 评分标准\n\n${standard}`,
+      },
+      parameters: {},
+      debug: {},
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`API请求失败: ${response.status} ${response.statusText}`)
+  }
+
+  const data = await response.json()
+  const text = data.output?.text
+
+  if (!text) {
+    throw new Error('API响应格式错误 I')
+  }
+
+  const result = JSON.parse(text)
+  if (!result.full || !result.total) {
+    throw new Error('API响应格式错误 II')
+  }
+
+  // 解析 usage 信息
+  const usage = data.usage.models
+  let apiUsage: ApiUsage[] = []
+  if (!Array.isArray(usage)) {
+    apiUsage = []
+  } else {
+    apiUsage = usage.map((rawUsage) => ({
+      inputTokens: rawUsage.input_tokens,
+      outputTokens: rawUsage.output_tokens,
+      modelId: rawUsage.model_id,
+    }))
+  }
+
+  return {
+    full: result.full,
+    total: result.total,
+    wordLimitPenalty: result.wordLimitPenalty || 0,
+    contentBasic: result.contentBasic || 0,
+    contentAdditionRaw: result.contentAdditionRaw || 0,
+    contentAddition: result.contentAddition || 0,
+    languageBonus: result.languageBonus || 0,
+    languageReasons: result.languageReasons || [],
+    contentReasons: result.contentReasons || [],
+    contentGrades: result.contentGrades || [],
     usage: apiUsage,
   }
 }

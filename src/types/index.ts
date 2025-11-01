@@ -32,7 +32,7 @@ export interface SummaryGradingStandard {
 }
 
 export interface SummaryEvaluation {
-  standard: string
+  full: number
   total: number
   wordLimitPenalty: number
   contentBasic: number
@@ -41,7 +41,8 @@ export interface SummaryEvaluation {
   languageBonus: number
   languageReasons: string[]
   contentReasons: string[]
-  contentGrades: string[]
+  contentGrades: ('A' | 'B' | 'C' | 'D')[]
+  usage: ApiUsage[]
 }
 
 // --task--
@@ -73,19 +74,30 @@ export interface TranslationComparisonTaskCore {
 export interface SummaryStandardForgingTaskCore {
   type: 'summary-standard'
   passage: string
-  result?: SummaryStandardForgingTaskCore
+  result?: SummaryGradingStandard
 }
 
 export interface SummaryEvaluationTaskCore {
   type: 'summary-evaluation'
+  passage?: string
   summary: string
   standard: string
-  result?: SummaryEvaluationTaskCore
+  result?: SummaryEvaluation
 }
 
-export type TaskResult = SentenceMakingEvaluation | TranslationComparisonEvaluation
+export type TaskResult =
+  | SentenceMakingEvaluation
+  | TranslationComparisonEvaluation
+  | SummaryGradingStandard
+  | SummaryEvaluation
 
-export type Task = TaskBasics & (SentenceMakingTaskCore | TranslationComparisonTaskCore)
+export type Task = TaskBasics &
+  (
+    | SentenceMakingTaskCore
+    | TranslationComparisonTaskCore
+    | SummaryStandardForgingTaskCore
+    | SummaryEvaluationTaskCore
+  )
 
 // -- type guard --
 
@@ -109,9 +121,30 @@ export function isTranslationComparisonEvaluation(
   return 'explanation' in result && 'options' in result
 }
 
+export function isSummaryStandardTask(
+  task: Task,
+): task is TaskBasics & SummaryStandardForgingTaskCore {
+  return task.type === 'summary-standard'
+}
+
+export function isSummaryEvaluationTask(
+  task: Task,
+): task is TaskBasics & SummaryEvaluationTaskCore {
+  return task.type === 'summary-evaluation'
+}
+
+export function isSummaryGradingStandard(result: TaskResult): result is SummaryGradingStandard {
+  return 'standard' in result && 'usage' in result
+}
+
+export function isSummaryEvaluation(result: TaskResult): result is SummaryEvaluation {
+  return 'full' in result && 'total' in result && 'wordLimitPenalty' in result
+}
+
 export interface ApiConfig {
   apiKey: string
   endpoint?: string // backward compatibility
   sentenceMakingEndpoint: string
   translationComparisonEndpoint: string
+  summaryEndpoint: string
 }

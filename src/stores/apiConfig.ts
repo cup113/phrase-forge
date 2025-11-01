@@ -8,11 +8,14 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
     'https://dashscope.aliyuncs.com/api/v1/apps/c64617ac89584dafaaa72de357e3c184/completion'
   const translationComparisonEndpoint =
     'https://dashscope.aliyuncs.com/api/v1/apps/cc1d2ea1191345f3999745e31f4ebff4/completion'
+  const summaryEndpoint =
+    'https://dashscope.aliyuncs.com/api/v1/apps/0143013c3ad84d339c9e5ef85c7a99c3/completion'
 
   const defaultConfig: ApiConfig = {
     apiKey: '',
     sentenceMakingEndpoint,
     translationComparisonEndpoint,
+    summaryEndpoint,
   }
 
   const apiConfig = useLocalStorage<ApiConfig>('phrase-forge-api-config', defaultConfig)
@@ -31,6 +34,10 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
     if (!apiConfig.value.translationComparisonEndpoint) {
       apiConfig.value.translationComparisonEndpoint = translationComparisonEndpoint
     }
+
+    if (!apiConfig.value.summaryEndpoint) {
+      apiConfig.value.summaryEndpoint = summaryEndpoint
+    }
   }
 
   const isConfigured = computed(() => {
@@ -42,9 +49,15 @@ export const useApiConfigStore = defineStore('apiConfig', () => {
   }
 
   function getEndpointForTaskType(taskType?: string): string {
-    return taskType === 'translation-comparison'
-      ? translationComparisonEndpoint
-      : sentenceMakingEndpoint
+    switch (taskType) {
+      case 'translation-comparison':
+        return translationComparisonEndpoint
+      case 'summary-standard':
+      case 'summary-evaluation':
+        return summaryEndpoint
+      default:
+        return sentenceMakingEndpoint
+    }
   }
 
   return {
