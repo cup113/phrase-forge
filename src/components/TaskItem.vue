@@ -1,7 +1,7 @@
 <template>
   <div class="task-item" :class="task.status">
     <div class="task-header">
-      <span class="task-keyword">{{ task.keyword }}</span>
+      <span class="task-keyword">{{ getTaskTitle(task) }}</span>
       <div class="task-status-container">
         <LoadingSpinner
           v-if="task.status === 'processing'"
@@ -9,8 +9,8 @@
           size="small"
           :center="false"
         />
-        <span class="task-status" :class="[task.status, getLevelClass(task.result?.level)]">
-          {{ getStatusText(task.status, task.result?.level) }}
+        <span class="task-status" :class="[task.status, getLevelClass(getTaskLevel(task))]">
+          {{ getStatusText(task.status, getTaskLevel(task)) }}
         </span>
         <span v-if="task.status === 'processing' && task.startedAt" class="processing-time">
           {{ processingTime }}
@@ -18,10 +18,36 @@
       </div>
     </div>
 
-    <div v-if="task.status !== 'incomplete'" class="task-sentence">{{ task.sentence }}</div>
-
-    <div v-if="task.scenario && task.status !== 'incomplete'" class="task-scenario">
+    <!-- 句子制作任务内容 -->
+    <div v-if="isSentenceMakingTask(task) && task.status !== 'incomplete'" class="task-sentence">
+      {{ task.sentence }}
+    </div>
+    <div
+      v-if="isSentenceMakingTask(task) && task.scenario && task.status !== 'incomplete'"
+      class="task-scenario"
+    >
       场景: {{ task.scenario }}
+    </div>
+
+    <!-- 翻译对照任务内容 -->
+    <div
+      v-if="isTranslationComparisonTask(task) && task.status !== 'incomplete'"
+      class="task-translation"
+    >
+      <div class="translation-card">
+        <div class="translation-header">
+          <span class="translation-label">原文</span>
+          <div class="translation-original">{{ task.original }}</div>
+        </div>
+        <div class="translation-options">
+          <span class="translation-label">翻译选项</span>
+          <div>
+            <span v-for="(options, index) in task.translations" :key="index" class="option-chip">
+              {{ options.join(' / ') }}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div v-if="task.status === 'incomplete'" class="task-incomplete">
@@ -30,7 +56,8 @@
 
     <div v-if="task.error" class="task-error">{{ task.error }}</div>
 
-    <div v-if="task.result" class="task-result">
+    <!-- 句子制作任务结果 -->
+    <div v-if="isSentenceMakingTask(task) && task.result" class="task-result">
       <div class="result-reason">
         <strong>评分理由:</strong>
         <div v-html="renderMarkdown(task.result.reason)" class="markdown-content"></div>
@@ -64,12 +91,38 @@
       </div>
     </div>
 
+    <!-- 翻译对照任务结果 -->
+    <div v-if="isTranslationComparisonTask(task) && task.result" class="task-result">
+      <div v-if="task.result.options && task.result.options.length > 0" class="result-options">
+        <strong>选项评估:</strong>
+        <div>
+          <div v-for="(option, index) in task.result.options" :key="index" class="option-card">
+            <div class="option-header">
+              <span class="option-level" :class="getLevelClass(option.level)"
+                >{{ option.level }}
+              </span>
+              <span class="option-text">{{ option.text }}</span>
+            </div>
+            <div class="option-reason" v-if="option.reason.length >= 2">{{ option.reason }}</div>
+            <div class="option-example" v-if="option.example.length >= 2">
+              <span class="example-label">示例:</span>
+              {{ option.example }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 操作区域 -->
     <div class="task-actions">
       <slot name="actions">
         <!-- 默认操作区域 -->
         <div class="action-buttons">
-          <button class="btn-action btn-recreate" @click="emit('recreate', task.id)">
+          <button
+            v-if="task.type === 'sentence-making'"
+            class="btn-action btn-recreate"
+            @click="emit('recreate', task.id)"
+          >
             重新造句
           </button>
 
@@ -93,10 +146,11 @@ import { marked } from 'marked'
 import { useNow } from '@vueuse/core'
 import { computed } from 'vue'
 import LoadingSpinner from './LoadingSpinner.vue'
-import type { SentenceMakingTaskCore, TaskBasics } from '@/types'
+import type { Task, TaskBasics } from '@/types'
+import { isSentenceMakingTask, isTranslationComparisonTask } from '@/types'
 
 interface Props {
-  task: SentenceMakingTaskCore & TaskBasics
+  task: Task
 }
 
 interface Emit {
@@ -201,6 +255,23 @@ function formatTime(timestamp?: number): string {
   return date.toLocaleDateString('zh-CN')
 }
 
+function getTaskTitle(task: Task): string {
+  if (isSentenceMakingTask(task)) {
+    return task.keyword
+  }
+  if (isTranslationComparisonTask(task)) {
+    return '翻译对照'
+  }
+  return '未知任务'
+}
+
+function getTaskLevel(task: Task): string | undefined {
+  if (isSentenceMakingTask(task) && task.result) {
+    return task.result.level
+  }
+  return undefined
+}
+
 function renderMarkdown(text: string): string {
   if (!text) return ''
   return marked.parse(text) as string
@@ -214,26 +285,37 @@ function renderMarkdown(text: string): string {
   border-radius: var(--border-radius-sm);
   padding: var(--spacing-md);
   box-shadow: var(--box-shadow-sm);
+  transition: var(--transition);
 }
 
 .task-item.processing {
   border-left: 4px solid var(--color-secondary);
+  background: linear-gradient(135deg, rgba(23, 162, 184, 0.05) 0%, white 100%);
 }
 
 .task-item.pending {
   border-left: 4px solid var(--color-warning);
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.05) 0%, white 100%);
 }
 
 .task-item.completed {
   border-left: 4px solid var(--color-primary);
+  background: linear-gradient(135deg, rgba(32, 201, 151, 0.05) 0%, white 100%);
 }
 
 .task-item.failed {
   border-left: 4px solid var(--color-danger);
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, white 100%);
 }
 
 .task-item.incomplete {
   border-left: 4px solid var(--color-warning);
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.05) 0%, white 100%);
+}
+
+.task-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .task-header {
@@ -268,6 +350,34 @@ function renderMarkdown(text: string): string {
   padding: var(--spacing-xs) var(--spacing-sm);
   border-radius: 12px;
   font-weight: 500;
+  transition: var(--transition);
+}
+
+.task-status.pending {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+}
+
+.task-status.processing {
+  background: var(--color-secondary);
+  color: white;
+}
+
+.task-status.completed {
+  background: var(--color-primary);
+  color: white;
+}
+
+.task-status.failed {
+  background: var(--color-danger);
+  color: white;
+}
+
+.task-status.incomplete {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
 }
 
 .task-sentence {
@@ -280,6 +390,71 @@ function renderMarkdown(text: string): string {
   font-size: 12px;
   color: var(--color-text-muted);
   margin-bottom: var(--spacing-sm);
+}
+
+/* 翻译对照任务样式 */
+.task-translation {
+  margin-bottom: var(--spacing-sm);
+}
+
+.translation-card {
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-md);
+  transition: var(--transition);
+}
+
+.translation-card:hover {
+  box-shadow: var(--box-shadow-sm);
+  transform: translateY(-1px);
+}
+
+.translation-header {
+  margin-bottom: var(--spacing-md);
+}
+
+.translation-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--spacing-xs);
+  display: block;
+}
+
+.translation-original {
+  font-size: 14px;
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  padding: var(--spacing-sm);
+  background: white;
+  border-radius: var(--border-radius-sm);
+  border-left: 3px solid var(--color-primary);
+}
+
+.translation-options {
+  margin-top: var(--spacing-md);
+}
+
+.option-chip {
+  display: inline-block;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  margin-right: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  transition: var(--transition);
+}
+
+.option-chip:hover {
+  background: var(--color-primary);
+  color: white;
+  transform: translateY(-1px);
 }
 
 .task-incomplete {
@@ -299,6 +474,11 @@ function renderMarkdown(text: string): string {
   color: var(--color-danger);
   font-size: 14px;
   margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--color-danger-light);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--border-radius-sm);
+  border-left: 4px solid var(--color-danger);
 }
 
 .task-result {
@@ -368,8 +548,89 @@ function renderMarkdown(text: string): string {
   font-size: 0.9em;
 }
 
-.result-explanation {
+.option-card {
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-md);
+  transition: all 0.2s ease;
+}
+
+.option-card:hover {
+  box-shadow: var(--box-shadow-sm);
+  transform: translateY(-1px);
+}
+
+.option-card.level-excellent {
+  border-left: 4px solid var(--color-success);
+  background: linear-gradient(135deg, var(--color-success-light) 0%, var(--color-gray-50) 100%);
+}
+
+.option-card.level-good {
+  border-left: 4px solid var(--color-warning);
+  background: linear-gradient(135deg, var(--color-warning-light) 0%, var(--color-gray-50) 100%);
+}
+
+.option-card.level-average {
+  border-left: 4px solid var(--color-danger);
+  background: linear-gradient(135deg, var(--color-danger-light) 0%, var(--color-gray-50) 100%);
+}
+
+.option-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.option-level {
+  font-size: 12px;
+  font-weight: 600;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: 12px;
+  color: white;
+  min-width: 40px;
+  text-align: center;
+}
+
+.option-card.level-excellent .option-level {
+  background: var(--color-success);
+}
+
+.option-card.level-good .option-level {
+  background: var(--color-warning);
+}
+
+.option-card.level-average .option-level {
+  background: var(--color-danger);
+}
+
+.option-text {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  flex: 1;
+}
+
+.option-reason {
   color: var(--color-text-secondary);
+  font-size: 0.9em;
+  line-height: 1.4;
+  margin-bottom: var(--spacing-sm);
+}
+
+.option-example {
+  font-size: 0.85em;
+  color: var(--color-text-muted);
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: var(--border-radius-sm);
+  border-left: 3px solid var(--color-border);
+}
+
+.example-label {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-right: var(--spacing-xs);
 }
 
 .task-actions {
@@ -381,12 +642,59 @@ function renderMarkdown(text: string): string {
 
 .action-buttons {
   display: flex;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
+}
+
+.btn-action {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: 11px;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-weight: 500;
+  transition: var(--transition);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 60px;
+}
+
+.btn-recreate {
+  background: var(--color-secondary);
+  color: white;
+}
+
+.btn-recreate:hover {
+  background: #138496;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(23, 162, 184, 0.3);
+}
+
+.btn-retry {
+  background: var(--color-warning);
+  color: var(--color-gray-900);
+}
+
+.btn-retry:hover {
+  background: #e0a800;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(255, 193, 7, 0.3);
+}
+
+.btn-delete {
+  background: var(--color-danger);
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
 }
 
 .task-time {
   font-size: 12px;
   color: var(--color-text-muted);
+  font-weight: 500;
 }
 
 /* 响应式设计 */
@@ -406,6 +714,41 @@ function renderMarkdown(text: string): string {
     align-items: flex-start;
     gap: var(--spacing-sm);
   }
+
+  .action-buttons {
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+  }
+
+  .btn-action {
+    font-size: 10px;
+    min-width: 50px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  .translation-card {
+    padding: var(--spacing-sm);
+  }
+
+  .option-chip {
+    font-size: 11px;
+    margin-right: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .option-card {
+    padding: var(--spacing-sm);
+  }
+
+  .option-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .option-level {
+    align-self: flex-start;
+  }
 }
 
 @media (max-width: 768px) {
@@ -423,6 +766,47 @@ function renderMarkdown(text: string): string {
 
   .result-suggestions ul {
     padding-left: var(--spacing-2xl);
+  }
+
+  .bilingual-suggestion {
+    padding-left: 0;
+  }
+
+  .english-suggestion,
+  .chinese-suggestion {
+    font-size: 0.85em;
+  }
+}
+
+@media (max-width: var(--breakpoint-sm)) {
+  .task-item {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .task-keyword {
+    font-size: 0.9rem;
+  }
+
+  .task-sentence {
+    font-size: 0.85rem;
+  }
+
+  .task-status {
+    font-size: 11px;
+  }
+
+  .processing-time {
+    font-size: 10px;
+  }
+
+  .result-suggestions ul {
+    padding-left: var(--spacing-xl);
+  }
+
+  .markdown-content ul,
+  .markdown-content ol {
+    padding-left: var(--spacing-lg);
   }
 }
 </style>

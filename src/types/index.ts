@@ -4,6 +4,8 @@ export interface ApiUsage {
   modelId: string
 }
 
+// --evaluation--
+
 export interface SentenceMakingEvaluation {
   level: string
   reason: string
@@ -20,10 +22,29 @@ export interface TranslationComparisonOptionEvaluation {
 }
 
 export interface TranslationComparisonEvaluation {
-  explanation: string
   options: TranslationComparisonOptionEvaluation[]
   usage: ApiUsage[] // no compatibility as it's newly added
 }
+
+export interface SummaryGradingStandard {
+  standard: string
+  usage: ApiUsage[]
+}
+
+export interface SummaryEvaluation {
+  standard: string
+  total: number
+  wordLimitPenalty: number
+  contentBasic: number
+  contentAdditionRaw: number
+  contentAddition: number
+  languageBonus: number
+  languageReasons: string[]
+  contentReasons: string[]
+  contentGrades: string[]
+}
+
+// --task--
 
 export interface TaskBasics {
   id: string
@@ -49,10 +70,25 @@ export interface TranslationComparisonTaskCore {
   result?: TranslationComparisonEvaluation
 }
 
+export interface SummaryStandardForgingTaskCore {
+  type: 'summary-standard'
+  passage: string
+  result?: SummaryStandardForgingTaskCore
+}
+
+export interface SummaryEvaluationTaskCore {
+  type: 'summary-evaluation'
+  summary: string
+  standard: string
+  result?: SummaryEvaluationTaskCore
+}
+
 export type TaskResult = SentenceMakingEvaluation | TranslationComparisonEvaluation
 
 export type Task = TaskBasics & (SentenceMakingTaskCore | TranslationComparisonTaskCore)
-// 类型守卫函数
+
+// -- type guard --
+
 export function isSentenceMakingTask(task: Task): task is TaskBasics & SentenceMakingTaskCore {
   return task.type === 'sentence-making' || !task.type
 }

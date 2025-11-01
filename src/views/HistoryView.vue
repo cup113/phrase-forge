@@ -71,7 +71,7 @@ import { ref, computed } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import TaskItem from '@/components/TaskItem.vue'
 import { useHistoryStore } from '@/stores/history'
-import { isSentenceMakingTask } from '@/types'
+import { isSentenceMakingTask, isTranslationComparisonTask } from '@/types'
 import ProgressStats from '@/components/ProgressStats.vue'
 
 const historyStore = useHistoryStore()
@@ -79,21 +79,41 @@ const historyStore = useHistoryStore()
 const searchKeyword = ref('')
 const filterLevel = ref('')
 
-const history = computed(() => historyStore.recentHistory.filter(isSentenceMakingTask))
+const history = computed(() => historyStore.recentHistory)
 
 const filteredHistory = computed(() => {
   let filtered = history.value
 
   if (searchKeyword.value) {
-    filtered = filtered.filter(
-      (record) =>
-        record.keyword.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
-        record.sentence.toLowerCase().includes(searchKeyword.value.toLowerCase()),
-    )
+    filtered = filtered.filter((record) => {
+      if (isSentenceMakingTask(record)) {
+        return (
+          record.keyword.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
+          record.sentence.toLowerCase().includes(searchKeyword.value.toLowerCase())
+        )
+      }
+      if (isTranslationComparisonTask(record)) {
+        return (
+          record.original.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
+          record.translations.some((options) =>
+            options.some((option) =>
+              option.toLowerCase().includes(searchKeyword.value.toLowerCase()),
+            ),
+          )
+        )
+      }
+      return false
+    })
   }
 
   if (filterLevel.value) {
-    filtered = filtered.filter((record) => record.result?.level === filterLevel.value)
+    filtered = filtered.filter((record) => {
+      if (isSentenceMakingTask(record)) {
+        return record.result?.level === filterLevel.value
+      }
+      // 翻译对照任务没有评分等级，不参与等级筛选
+      return false
+    })
   }
 
   return filtered

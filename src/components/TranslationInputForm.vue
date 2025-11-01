@@ -37,14 +37,13 @@
         <label for="translations">
           <span class="label-icon">🔄</span>
           英文翻译对照
-          <span class="label-hint">（每行一个英文段落，用 [选项1/选项2] 格式）</span>
+          <span class="label-hint">用 [选项1/选项2] 格式</span>
         </label>
         <textarea
           id="translations"
           v-model="translationsInput"
           placeholder="例如：
 I [want to/would like to] [go for a walk/take a walk] in the park
-The weather is [nice/beautiful] today
 She [is studying/studies] English every day"
           rows="6"
           required
@@ -93,8 +92,22 @@ const taskQueueStore = useTaskQueueStore()
 const apiConfigStore = useApiConfigStore()
 
 // 表单数据
-const original = ref('')
-const translationsInput = ref('')
+const original = computed({
+  get() {
+    return taskQueueStore.translationInputForm.original
+  },
+  set(text) {
+    taskQueueStore.translationInputForm.original = text
+  },
+})
+const translationsInput = computed({
+  get() {
+    return taskQueueStore.translationInputForm.translationInput
+  },
+  set(text) {
+    taskQueueStore.translationInputForm.translationInput = text
+  },
+})
 const showSuccess = ref(false)
 
 const canSubmit = computed(() => {
@@ -136,13 +149,17 @@ function clearForm() {
 }
 
 function parseTranslationsInput(input: string): string[][] {
-  const lines = input.split('\n').filter((line) => line.trim())
   const result: string[][] = []
+  let lastEndIndex = 0
+  input = input.trim()
 
-  for (const line of lines) {
-    // 匹配 [选项1/选项2/选项3] 格式
-    const bracketMatch = line.match(/\[(.*?)\]/)
+  while (true) {
+    const bracketMatch = input.slice(lastEndIndex).match(/\[(.*?)\]/)
     if (bracketMatch && bracketMatch[1]) {
+      if (bracketMatch.index !== undefined) {
+        result.push([input.slice(lastEndIndex, lastEndIndex + bracketMatch.index).trim()])
+        lastEndIndex += bracketMatch.index
+      }
       const options = bracketMatch[1]
         .split('/')
         .map((option) => option.trim())
@@ -151,6 +168,13 @@ function parseTranslationsInput(input: string): string[][] {
       if (options.length > 0) {
         result.push(options)
       }
+      lastEndIndex += bracketMatch[0].length
+    } else {
+      const remaining = input.slice(lastEndIndex).trim()
+      if (remaining.length > 0) {
+        result.push([remaining])
+      }
+      break
     }
   }
 

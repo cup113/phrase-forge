@@ -19,6 +19,10 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
     sentence: '',
     scenario: '',
   })
+  const translationInputForm = useLocalStorage('phrase-forge-translation-input-task-form', {
+    original: '',
+    translationInput: '',
+  })
 
   const completedTasks = computed(() => {
     return tasks.value
@@ -173,6 +177,7 @@ export const useTaskQueueStore = defineStore('taskQueue', () => {
   return {
     tasks,
     inputTaskForm,
+    translationInputForm,
     completedTasks,
     incompleteTasks,
     hasIncompleteTasks,

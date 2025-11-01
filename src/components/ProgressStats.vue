@@ -92,18 +92,21 @@ import type { Task } from '@/types'
 
 const historyStore = useHistoryStore()
 
-const history = computed(() => historyStore.history.filter(isSentenceMakingTask))
+const history = computed(() => historyStore.history)
 
 // 基础统计
 const totalRecords = computed(() => history.value.length)
 
 const uniqueKeywords = computed(() => {
-  const keywords = new Set(history.value.map((record) => record.keyword))
+  const keywords = new Set(
+    history.value.filter(isSentenceMakingTask).map((record) => record.keyword),
+  )
   return keywords.size
 })
 
 const averageLevel = computed(() => {
-  if (history.value.length === 0) return 'N/A'
+  const sentenceMakingHistory = history.value.filter(isSentenceMakingTask)
+  if (sentenceMakingHistory.length === 0) return 'N/A'
 
   const levelScores: Record<string, number> = {
     'A+': 6,
@@ -114,11 +117,11 @@ const averageLevel = computed(() => {
     C: 1,
   }
 
-  const totalScore = history.value.reduce((sum, record) => {
+  const totalScore = sentenceMakingHistory.reduce((sum, record) => {
     return sum + (levelScores[record.result?.level || ''] || 0)
   }, 0)
 
-  const averageScore = totalScore / history.value.length
+  const averageScore = totalScore / sentenceMakingHistory.length
 
   // 将分数映射回等级
   if (averageScore >= 5.5) return 'A+'
@@ -185,9 +188,12 @@ const levelDistribution = computed(() => {
   const levels = ['A+', 'A', 'B+', 'B', 'C+', 'C']
   const distribution: { level: string; count: number; percentage: number }[] = []
 
+  const sentenceMakingHistory = history.value.filter(isSentenceMakingTask)
+
   levels.forEach((level) => {
-    const count = history.value.filter((record) => record.result?.level === level).length
-    const percentage = totalRecords.value > 0 ? (count / totalRecords.value) * 100 : 0
+    const count = sentenceMakingHistory.filter((record) => record.result?.level === level).length
+    const percentage =
+      sentenceMakingHistory.length > 0 ? (count / sentenceMakingHistory.length) * 100 : 0
     distribution.push({ level, count, percentage })
   })
 

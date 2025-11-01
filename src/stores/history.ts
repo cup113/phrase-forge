@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import type { Task } from '../types'
-import { isSentenceMakingTask, isSentenceMakingEvaluation } from '../types'
+import { isSentenceMakingTask, isTranslationComparisonTask } from '../types'
 
 export const useHistoryStore = defineStore('history', () => {
   const history = useLocalStorage<Task[]>('phrase-forge-history', [])
@@ -11,20 +11,17 @@ export const useHistoryStore = defineStore('history', () => {
     return history.value.slice(0, 50)
   })
 
-  const keywordStats = computed(() => {
-    const stats: Record<string, { count: number; levels: Record<string, number> }> = {}
+  const taskTypeStats = computed(() => {
+    const stats = {
+      sentenceMaking: 0,
+      translationComparison: 0,
+    }
 
     history.value.forEach((record) => {
       if (isSentenceMakingTask(record)) {
-        const keyword = record.keyword || 'unknown'
-        if (!stats[keyword]) {
-          stats[keyword] = { count: 0, levels: {} }
-        }
-        stats[keyword].count++
-        if (record.result && isSentenceMakingEvaluation(record.result)) {
-          const level = record.result.level
-          stats[keyword].levels[level] = (stats[keyword].levels[level] || 0) + 1
-        }
+        stats.sentenceMaking++
+      } else if (isTranslationComparisonTask(record)) {
+        stats.translationComparison++
       }
     })
 
@@ -78,7 +75,7 @@ export const useHistoryStore = defineStore('history', () => {
   return {
     history,
     recentHistory,
-    keywordStats,
+    taskTypeStats,
     addRecord,
     removeRecord,
     clearHistory,

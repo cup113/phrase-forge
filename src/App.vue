@@ -48,6 +48,11 @@ provide('setGlobalLoading', setGlobalLoading)
   --color-danger: #dc3545;
   --color-info: #667eea;
 
+  /* 浅色调 */
+  --color-success-light: rgba(40, 167, 69, 0.1);
+  --color-warning-light: rgba(255, 193, 7, 0.1);
+  --color-danger-light: rgba(220, 53, 69, 0.1);
+
   /* 中性色 */
   --color-gray-100: #f8f9fa;
   --color-gray-200: #e9ecef;

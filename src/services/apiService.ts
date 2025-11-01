@@ -127,7 +127,7 @@ export async function evaluateTranslation(
   }
 
   const result = JSON.parse(text)
-  if (!result.explanation || !result.options) {
+  if (!result.options) {
     throw new Error('API响应格式错误 II')
   }
 
@@ -145,7 +145,6 @@ export async function evaluateTranslation(
   }
 
   return {
-    explanation: result.explanation,
     options: result.options,
     usage: apiUsage,
   }
